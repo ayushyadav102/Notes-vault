@@ -17,4 +17,6 @@ export interface Note {
   };
   thumbnailUrl: string;
   isPdf: boolean;
+  ownerId?: string;
+  createdAt?: any;
 }

@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "Note": {
+      "title": "Note",
+      "description": "A study note uploaded by a student.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 100 },
+        "subject": { "type": "string", "maxLength": 50 },
+        "department": { "type": "string", "maxLength": 50 },
+        "grade": { "type": "number", "minimum": 5, "maximum": 12 },
+        "pages": { "type": "number", "minimum": 1 },
+        "sizeMB": { "type": "number", "minimum": 0 },
+        "rating": { "type": "number", "minimum": 0, "maximum": 5 },
+        "reviews": { "type": "number", "minimum": 0 },
+        "author": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "maxLength": 50 },
+            "initials": { "type": "string", "maxLength": 3 },
+            "badge": { "type": "string", "maxLength": 50 },
+            "badgeStyle": { "type": "string" }
+          },
+          "required": ["name", "initials", "badge"]
+        },
+        "thumbnailUrl": { "type": "string", "maxLength": 500 },
+        "isPdf": { "type": "boolean" },
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["title", "subject", "grade", "ownerId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "notes/{noteId}": {
+      "schema": { "$ref": "#/entities/Note" },
+      "description": "Collection of all study notes uploaded by students."
+    }
+  }
+}

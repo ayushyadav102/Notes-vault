@@ -35,7 +35,6 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
       subject,
       department: 'general',
       grade,
-      tags: [],
     });
   };
 
