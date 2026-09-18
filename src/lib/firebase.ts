@@ -1,5 +1,12 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { 
+  getAuth, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signOut, 
+  setPersistence, 
+  browserLocalPersistence 
+} from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -8,15 +15,43 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+// Ensure local persistence is active across tabs and browser restarts
+setPersistence(auth, browserLocalPersistence).catch((err) => {
+  console.warn("Auth persistence error:", err);
+});
+
 export const loginWithGoogle = async () => {
   try {
-    await signInWithPopup(auth, googleProvider);
+    await setPersistence(auth, browserLocalPersistence);
+    const result = await signInWithPopup(auth, googleProvider);
+    if (result.user) {
+      // Store session indicator in localStorage for persistent recognition
+      localStorage.setItem('notesvault_is_authenticated', 'true');
+      localStorage.setItem('notesvault_cached_user', JSON.stringify({
+        uid: result.user.uid,
+        displayName: result.user.displayName,
+        email: result.user.email,
+        photoURL: result.user.photoURL,
+      }));
+    }
+    return result.user;
   } catch (error: any) {
-    console.error("Login error:", error);
-    alert("Login failed: " + error.message + "\n\nTip: If you are using the AI Studio preview window, popups might be blocked. Please click the 'Open in new tab' button (top right of the preview) and try again.");
+    if (error?.code === 'auth/popup-closed-by-user' || error?.code === 'auth/cancelled-popup-request') {
+      return null;
+    }
+    console.warn("Login notice:", error?.message || error);
+    alert("Login failed: " + (error?.message || error) + "\n\nTip: If you are using the preview window, please click 'Open in new tab' at the top right and try again.");
+    return null;
   }
 };
-export const logout = () => signOut(auth);
+
+export const logout = async () => {
+  // Clear persistent flags on explicit logout
+  localStorage.removeItem('notesvault_is_authenticated');
+  localStorage.removeItem('notesvault_cached_user');
+  sessionStorage.removeItem('notesvault_splash_seen');
+  await signOut(auth);
+};
 
 export enum OperationType {
   CREATE = 'create',
@@ -47,10 +82,9 @@ interface FirestoreErrorInfo {
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errorMessage = error instanceof Error ? error.message : String(error);
   
-  // If it's a network/offline error, don't crash the app. Just log it.
   if (errorMessage.includes('unavailable') || errorMessage.includes('offline') || errorMessage.includes('network')) {
-    console.warn(`Firestore network/availability warning during ${operationType} on ${path}:`, errorMessage);
-    return; // Do not throw, allow the app to operate in offline mode or retry
+    console.warn(`Firestore network warning during ${operationType} on ${path}:`, errorMessage);
+    return;
   }
 
   const errInfo: FirestoreErrorInfo = {
@@ -68,23 +102,20 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     },
     operationType,
     path
-  }
+  };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   
-  // Only throw if it's a permission denied error to trigger the security rule diagnostic,
-  // otherwise, for standard runtime errors, we don't want to fatally crash the React tree.
   if (errorMessage.includes('Missing or insufficient permissions')) {
     throw new Error(JSON.stringify(errInfo));
   }
 }
 
-// Test connection on boot
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
-    if(error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn("Firestore client check.");
     }
   }
 }

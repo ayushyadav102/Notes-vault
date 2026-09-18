@@ -44,13 +44,13 @@ service cloud.firestore {
     }
 
     match /notes/{noteId} {
-      // Anyone can read notes
+      // Anyone can read and browse notes
       allow read: if true;
       
       // Only authenticated users can create notes they own
       allow create: if isSignedIn() && isValidId(noteId) && isValidNote(incoming()) && incoming().keys().size() == 13;
       
-      allow update: if false; // Disallow updates for now to keep it simple and secure
+      allow update: if false;
       allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
     }
   }

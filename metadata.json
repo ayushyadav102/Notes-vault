@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "NotesVault - School Archive",
+  "description": "Find verified school notes, study guides & exam prep for Classes 5 to 12",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

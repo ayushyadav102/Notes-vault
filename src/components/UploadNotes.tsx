@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Note } from '../types';
 
 interface UploadNotesProps {
-  onPublish: (note: Omit<Note, 'id' | 'reviews' | 'rating' | 'author' | 'thumbnailUrl' | 'isPdf' | 'sizeMB' | 'pages'>) => void;
+  onPublish: (note: Omit<Note, 'id' | 'reviews' | 'rating' | 'author' | 'thumbnailUrl' | 'isPdf' | 'sizeMB' | 'pages' | 'ownerId'>) => void;
   onCancel: () => void;
 }
 
@@ -49,10 +49,10 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
             </button>
           </div>
 
-          <div className="bg-surface-container-lowest rounded-xl p-space-xl shadow-sm">
+          <div className="bg-surface-container-lowest rounded-xl p-space-xl shadow-sm border border-outline-variant/20">
             <div className="mb-space-lg">
-               <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight">Upload Notes</h1>
-               <p className="font-body-md text-body-md text-on-surface-variant mt-1">Share your study materials with the school.</p>
+               <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight font-bold">Upload Notes</h1>
+               <p className="font-body-md text-body-md text-on-surface-variant mt-1">Share your study materials and handwritten notes with the school community.</p>
             </div>
 
             <form className="flex flex-col gap-space-lg" onSubmit={handleSubmit}>
@@ -66,8 +66,8 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                   maxLength={90}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline/70 px-space-md py-space-sm rounded-lg focus:bg-surface-container-lowest focus:outline-none shadow-sm transition-all" 
-                  placeholder="e.g., Mathematics Formula Sheet" 
+                  className="w-full bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline/70 px-space-md py-space-sm rounded-lg focus:bg-surface-container-lowest focus:outline-none border border-outline-variant/30 focus:border-primary shadow-sm transition-all" 
+                  placeholder="e.g., Mathematics Formula Sheet & Key Concepts" 
                   type="text" 
                 />
               </div>
@@ -81,8 +81,8 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                   required 
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="w-full bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline/70 px-space-md py-space-sm rounded-lg focus:bg-surface-container-lowest focus:outline-none shadow-sm transition-all" 
-                  placeholder="e.g., Math" 
+                  className="w-full bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline/70 px-space-md py-space-sm rounded-lg focus:bg-surface-container-lowest focus:outline-none border border-outline-variant/30 focus:border-primary shadow-sm transition-all" 
+                  placeholder="e.g., Science, Mathematics, History" 
                   type="text" 
                 />
               </div>
@@ -99,7 +99,7 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                       onClick={() => setGrade(g)}
                       className={`py-space-xs px-space-xs rounded-lg text-center font-label-md text-label-md transition-all cursor-pointer ${
                         grade === g 
-                          ? 'bg-primary-container text-on-primary shadow-sm' 
+                          ? 'bg-primary-container text-on-primary font-bold shadow-sm' 
                           : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
                       }`}
                     >
@@ -156,7 +156,7 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                     </div>
                     <button 
                       onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                      className="w-8 h-8 rounded-lg bg-surface-container-lowest hover:bg-error-container text-error flex items-center justify-center transition-colors cursor-pointer" 
+                      className="w-8 h-8 rounded-lg bg-surface-container-lowest hover:bg-error-container text-error flex items-center justify-center transition-colors cursor-pointer border-none" 
                       type="button"
                     >
                       <span className="material-symbols-outlined text-[18px]">delete</span>
@@ -169,18 +169,18 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                 <div className="flex items-center gap-space-sm w-full sm:w-auto">
                   <button 
                     onClick={onCancel}
-                    className="w-full sm:w-auto px-space-lg py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors text-center cursor-pointer" 
+                    className="w-full sm:w-auto px-space-lg py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors text-center cursor-pointer border-none" 
                     type="button"
                   >
                     Cancel
                   </button>
                   <button 
                     disabled={!file}
-                    className="w-full sm:w-auto px-space-xl py-space-sm rounded-lg font-label-md text-label-md text-on-primary bg-primary-container hover:bg-primary shadow-sm hover:shadow transition-all flex items-center justify-center gap-space-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
+                    className="w-full sm:w-auto px-space-xl py-space-sm rounded-lg font-label-md text-label-md text-on-primary bg-primary-container hover:bg-primary shadow-sm hover:shadow transition-all flex items-center justify-center gap-space-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-none font-bold" 
                     type="submit"
                   >
                     <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
-                    <span>Publish</span>
+                    <span>Publish Note</span>
                   </button>
                 </div>
               </div>

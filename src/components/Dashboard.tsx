@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Note } from '../types';
 
 interface DashboardProps {
   notes: Note[];
   onUploadClick: () => void;
+  onBackToHome?: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick, onBackToHome }) => {
   const [activeClass, setActiveClass] = useState<string>('all');
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
 
@@ -16,9 +17,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) =>
     ? notes 
     : notes.filter(n => `class-${n.grade}` === activeClass);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && previewNote) {
+        setPreviewNote(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewNote]);
+
   const handleDownload = (note: Note) => {
-    // Generate a dummy text file to act as the "download" file
-    const content = `Title: ${note.title}\nSubject: ${note.subject}\nClass: ${note.grade}\n\nThis is a placeholder for the local storage downloaded notes.`;
+    const content = `Title: ${note.title}\nSubject: ${note.subject}\nClass: ${note.grade}\nAuthor: ${note.author.name}\n\nThis is a placeholder for the downloaded study notes.`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -33,6 +43,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) =>
   return (
     <div className="flex flex-col w-full">
       <div className="max-w-7xl mx-auto px-margin w-full py-space-xl">
+        {/* Navigation Breadcrumb / Back button */}
+        {onBackToHome && (
+          <div className="mb-space-md">
+            <button
+              onClick={onBackToHome}
+              className="inline-flex items-center gap-1.5 text-on-surface-variant hover:text-primary font-label-md text-label-md px-3 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer border border-outline-variant/30"
+              title="Go back to Home page"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              <span>Back to Home</span>
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col gap-space-sm mb-space-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-space-xs">
@@ -60,8 +84,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) =>
           </div>
         </div>
 
-        <div className="flex items-center gap-space-xs text-on-surface-variant font-body-sm text-body-sm mb-space-md bg-surface-container-lowest p-space-sm rounded-xl shadow-xs">
-          <span>Showing <strong className="text-on-surface">{filteredNotes.length}</strong> items</span>
+        <div className="flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm mb-space-md bg-surface-container-lowest p-space-sm rounded-xl shadow-xs">
+          <span>Showing <strong className="text-on-surface">{filteredNotes.length}</strong> notes</span>
+          <button 
+            onClick={onUploadClick}
+            className="inline-flex items-center gap-1 text-primary hover:underline font-semibold cursor-pointer border-none bg-transparent"
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            <span>Add New Note</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter mb-space-xl">
@@ -74,7 +105,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) =>
               </p>
               <button 
                 onClick={onUploadClick}
-                className="bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md py-space-sm px-space-lg rounded-lg flex items-center justify-center gap-space-xs transition-colors cursor-pointer"
+                className="bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md py-space-sm px-space-lg rounded-lg flex items-center justify-center gap-space-xs transition-colors cursor-pointer border-none"
               >
                 <span className="material-symbols-outlined text-[18px]">add</span>
                 <span>Upload a Note</span>
@@ -83,7 +114,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) =>
           )}
 
           {filteredNotes.map(note => (
-            <article key={note.id} className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+            <article key={note.id} className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-all flex flex-col justify-between group border border-outline-variant/20">
               <div>
                 <div className="flex items-center justify-between mb-space-md">
                   <div className="flex items-center gap-space-xs">
@@ -101,7 +132,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) =>
                 </h2>
                 
                 <div className="flex items-center gap-space-sm py-space-xs mb-space-md">
-                  <div className={`w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-label-sm text-label-sm font-bold`}>
+                  <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-label-sm text-label-sm font-bold">
                     {note.author.initials}
                   </div>
                   <div className="flex flex-col">
@@ -116,14 +147,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) =>
                 <div className="grid grid-cols-2 gap-space-sm">
                   <button 
                     onClick={() => setPreviewNote(note)}
-                    className="bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md py-2 px-space-sm rounded-lg flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                    className="bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md py-2 px-space-sm rounded-lg flex items-center justify-center gap-1 transition-colors cursor-pointer border-none"
                   >
                     <span className="material-symbols-outlined text-[16px]">visibility</span>
                     <span>View Info</span>
                   </button>
                   <button 
                     onClick={() => handleDownload(note)}
-                    className="bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md py-2 px-space-sm rounded-lg flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer group"
+                    className="bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md py-2 px-space-sm rounded-lg flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer group border-none"
                   >
                     <span className="material-symbols-outlined text-[16px]">download</span>
                     <span>Download</span>
@@ -136,11 +167,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) =>
       </div>
 
       {previewNote && (
-        <div className="fixed inset-0 z-50 bg-inverse-surface/60 backdrop-blur-sm flex items-center justify-center p-space-md">
-          <div className="bg-surface-container-lowest rounded-xl max-w-lg w-full p-space-lg shadow-2xl flex flex-col gap-space-md relative">
+        <div 
+          className="fixed inset-0 z-50 bg-inverse-surface/60 backdrop-blur-sm flex items-center justify-center p-space-md"
+          onClick={() => setPreviewNote(null)}
+        >
+          <div 
+            className="bg-surface-container-lowest rounded-xl max-w-lg w-full p-space-lg shadow-2xl flex flex-col gap-space-md relative"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button 
               onClick={() => setPreviewNote(null)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-surface-container-low hover:bg-surface-container flex items-center justify-center text-on-surface transition-colors cursor-pointer"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-surface-container-low hover:bg-surface-container flex items-center justify-center text-on-surface transition-colors cursor-pointer border-none"
+              title="Close (वापस जाएं)"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
@@ -159,13 +197,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick }) =>
               <div className="flex gap-space-sm">
                 <button 
                   onClick={() => setPreviewNote(null)}
-                  className="px-space-md py-space-sm bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md rounded-lg cursor-pointer transition-colors"
+                  className="px-space-md py-space-sm bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md rounded-lg cursor-pointer transition-colors border-none"
                 >
                   Close
                 </button>
                 <button 
                   onClick={() => handleDownload(previewNote)}
-                  className="px-space-lg py-space-sm bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md rounded-lg flex items-center gap-space-xs transition-colors cursor-pointer"
+                  className="px-space-lg py-space-sm bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md rounded-lg flex items-center gap-space-xs transition-colors cursor-pointer border-none font-bold"
                 >
                   <span className="material-symbols-outlined text-[18px]">download</span>
                   <span>Download File</span>
