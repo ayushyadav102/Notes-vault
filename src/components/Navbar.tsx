@@ -33,13 +33,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Logo with matching NotesVault Shield */}
+          {/* Logo with matching NotesVault Open Book Emblem */}
           <a
             className="flex items-center gap-space-sm group text-decoration-none cursor-pointer"
             onClick={(e) => { e.preventDefault(); onTabChange('landing'); }}
             title="Return to Home"
           >
-            <div className="w-10 h-10 flex items-center justify-center">
+            <div className="w-14 h-9 flex items-center justify-center">
               <NotesVaultLogo size="sm" showText={false} />
             </div>
             <div className="flex flex-col">
