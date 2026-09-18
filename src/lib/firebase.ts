@@ -8,7 +8,14 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-export const loginWithGoogle = () => signInWithPopup(auth, googleProvider);
+export const loginWithGoogle = async () => {
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (error: any) {
+    console.error("Login error:", error);
+    alert("Login failed: " + error.message + "\n\nTip: If you are using the AI Studio preview window, popups might be blocked. Please click the 'Open in new tab' button (top right of the preview) and try again.");
+  }
+};
 export const logout = () => signOut(auth);
 
 export enum OperationType {
@@ -38,8 +45,16 @@ interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  // If it's a network/offline error, don't crash the app. Just log it.
+  if (errorMessage.includes('unavailable') || errorMessage.includes('offline') || errorMessage.includes('network')) {
+    console.warn(`Firestore network/availability warning during ${operationType} on ${path}:`, errorMessage);
+    return; // Do not throw, allow the app to operate in offline mode or retry
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -55,7 +70,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  
+  // Only throw if it's a permission denied error to trigger the security rule diagnostic,
+  // otherwise, for standard runtime errors, we don't want to fatally crash the React tree.
+  if (errorMessage.includes('Missing or insufficient permissions')) {
+    throw new Error(JSON.stringify(errInfo));
+  }
 }
 
 // Test connection on boot
