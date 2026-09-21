@@ -26,22 +26,19 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
 
   // 3-second countdown timer
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // If already signed in, automatically enter the app after 3s
-          if (user && onEnterApp) {
-            onEnterApp();
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
+    if (countdown <= 0) {
+      if (user && onEnterApp) {
+        onEnterApp();
+      }
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [user, onEnterApp]);
+    return () => clearTimeout(timer);
+  }, [countdown, user, onEnterApp]);
 
   const handleSignIn = async () => {
     setErrorMsg(null);
@@ -180,7 +177,11 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
             </button>
 
             {errorMsg && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium">
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium text-left leading-relaxed">
+                <div className="flex items-center gap-1.5 font-bold text-amber-950 mb-1">
+                  <span className="material-symbols-outlined text-[16px] text-amber-700">info</span>
+                  <span>Domain Authorization Required</span>
+                </div>
                 {errorMsg}
               </div>
             )}
