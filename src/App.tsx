@@ -122,7 +122,10 @@ export default function App() {
     const unsubscribeNotes = onSnapshot(notesQuery, (snapshot) => {
       const notesData: Note[] = [];
       snapshot.forEach((doc) => {
-        notesData.push({ id: doc.id, ...doc.data() } as Note);
+        const data = doc.data();
+        const schoolCode = data.schoolCode || `NV${doc.id.slice(0, 4).toUpperCase()}`;
+        const schoolName = data.schoolName || 'General School Repository';
+        notesData.push({ id: doc.id, ...data, schoolCode, schoolName } as Note);
       });
       setNotes(notesData);
     }, (error) => {

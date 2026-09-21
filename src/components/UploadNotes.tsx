@@ -9,6 +9,8 @@ interface UploadNotesProps {
 export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel }) => {
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
+  const [schoolName, setSchoolName] = useState('');
+  const [schoolCode, setSchoolCode] = useState('');
   const [grade, setGrade] = useState<number>(5);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,15 +28,51 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
     }
   };
 
+  const generateAutoId = (name: string) => {
+    const clean = name.trim();
+    if (!clean) {
+      return `NOTE${Math.floor(100 + Math.random() * 900)}`;
+    }
+    const words = clean.split(/\s+/);
+    let prefix = '';
+    if (words.length >= 2) {
+      prefix = words.map(w => w[0]).join('').slice(0, 4).toUpperCase();
+    } else {
+      prefix = words[0].slice(0, 3).toUpperCase();
+    }
+    const num = Math.floor(100 + Math.random() * 900);
+    return `${prefix}${num}`;
+  };
+
+  const handleSchoolNameChange = (val: string) => {
+    setSchoolName(val);
+    // If schoolCode is currently empty or resembles a default code, auto-update it
+    if (!schoolCode || /^[A-Z]{2,4}\d{3}$/.test(schoolCode)) {
+      const words = val.trim().split(/\s+/);
+      if (words[0] && words[0].length >= 2) {
+        const prefix = words.length >= 2 
+          ? words.map(w => w[0]).join('').slice(0, 4).toUpperCase() 
+          : words[0].slice(0, 3).toUpperCase();
+        setSchoolCode(`${prefix}101`);
+      }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !subject || !grade) return;
     
+    // Fallback schoolCode if left empty
+    const finalCode = schoolCode.trim() || (schoolName ? generateAutoId(schoolName) : 'NOTE101');
+    const finalSchoolName = schoolName.trim() || 'General School Repository';
+
     onPublish({
       title,
       subject,
       department: 'general',
       grade,
+      schoolName: finalSchoolName,
+      schoolCode: finalCode.toUpperCase(),
     });
   };
 
@@ -87,6 +125,51 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                 />
               </div>
 
+              {/* School / College Name */}
+              <div className="flex flex-col gap-space-xs">
+                <label className="font-label-md text-label-md text-on-surface" htmlFor="school-name">
+                  School / College Name <span className="text-error">*</span>
+                </label>
+                <input 
+                  id="school-name" 
+                  required 
+                  maxLength={100}
+                  value={schoolName}
+                  onChange={(e) => handleSchoolNameChange(e.target.value)}
+                  className="w-full bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline/70 px-space-md py-space-sm rounded-lg focus:bg-surface-container-lowest focus:outline-none border border-outline-variant/30 focus:border-primary shadow-sm transition-all" 
+                  placeholder="e.g., BJS School, St. Xavier's High School" 
+                  type="text" 
+                />
+              </div>
+
+              {/* Unique School / Note ID */}
+              <div className="flex flex-col gap-space-xs">
+                <div className="flex items-center justify-between">
+                  <label className="font-label-md text-label-md text-on-surface" htmlFor="school-code">
+                    Unique School / Note ID <span className="text-error">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setSchoolCode(generateAutoId(schoolName))}
+                    className="text-xs text-primary hover:underline font-semibold flex items-center gap-1 cursor-pointer bg-transparent border-none p-0"
+                    title="Auto generate code like BJS101"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">autorenew</span>
+                    <span>Auto ID</span>
+                  </button>
+                </div>
+                <input 
+                  id="school-code" 
+                  required 
+                  maxLength={20}
+                  value={schoolCode}
+                  onChange={(e) => setSchoolCode(e.target.value.toUpperCase().replace(/\s+/g, ''))}
+                  className="w-full bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline/70 px-space-md py-space-sm rounded-lg focus:bg-surface-container-lowest focus:outline-none border border-outline-variant/30 focus:border-primary shadow-sm transition-all uppercase" 
+                  placeholder="e.g., BJS101, STX102" 
+                  type="text" 
+                />
+              </div>
+
               <div className="flex flex-col gap-space-xs">
                 <label className="font-label-md text-label-md text-on-surface">
                   Class <span className="text-error">*</span>
@@ -99,7 +182,7 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                       onClick={() => setGrade(g)}
                       className={`py-space-xs px-space-xs rounded-lg text-center font-label-md text-label-md transition-all cursor-pointer ${
                         grade === g 
-                          ? 'bg-primary-container text-on-primary font-bold shadow-sm' 
+                          ? 'bg-[#164373] text-white font-bold shadow-sm' 
                           : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
                       }`}
                     >
@@ -169,17 +252,17 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                 <div className="flex items-center gap-space-sm w-full sm:w-auto">
                   <button 
                     onClick={onCancel}
-                    className="w-full sm:w-auto px-space-lg py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors text-center cursor-pointer border-none" 
+                    className="w-full sm:w-auto px-space-lg py-2.5 rounded-xl font-semibold text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors text-center cursor-pointer border-none" 
                     type="button"
                   >
                     Cancel
                   </button>
                   <button 
                     disabled={!file}
-                    className="w-full sm:w-auto px-space-xl py-space-sm rounded-lg font-label-md text-label-md text-on-primary bg-primary-container hover:bg-primary shadow-sm hover:shadow transition-all flex items-center justify-center gap-space-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-none font-bold" 
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-[#164373] disabled:bg-blue-200 disabled:text-blue-800 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border-none active:scale-95" 
                     type="submit"
                   >
-                    <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+                    <span className="material-symbols-outlined text-[19px]">cloud_upload</span>
                     <span>Publish Note</span>
                   </button>
                 </div>

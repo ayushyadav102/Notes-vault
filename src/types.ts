@@ -4,6 +4,8 @@ export interface Note {
   subject: string;
   department: string;
   grade: number;
+  schoolName?: string;
+  schoolCode?: string;
   tags?: string[];
   pages: number;
   sizeMB: number;
