@@ -5,17 +5,18 @@ import { Footer } from './components/Footer';
 import { Dashboard } from './components/Dashboard';
 import { UploadNotes, UploadNotePayload } from './components/UploadNotes';
 import { LandingPage } from './components/LandingPage';
-import { SplashAuthScreen } from './components/SplashAuthScreen';
-import { Note } from './types';
+import { StudentAuthScreen } from './components/StudentAuthScreen';
+import { Note, StudentUser } from './types';
 import { INITIAL_NOTES, INITIAL_CLASSES } from './data';
 import { auth, db, loginWithGoogle, logout, OperationType, handleFirestoreError } from './lib/firebase';
+import { getActiveStudent, logoutStudent } from './lib/studentAuth';
 import { storeLocalFile, fileToDataUrl } from './lib/fileStorage';
 import { collection, onSnapshot, setDoc, doc, serverTimestamp, query, orderBy, writeBatch, getDocs } from 'firebase/firestore';
 
 type TabType = 'landing' | 'browse' | 'upload';
 
 export default function App() {
-  const [hasEntered, setHasEntered] = useState<boolean>(false);
+  const [student, setStudent] = useState<StudentUser | null>(() => getActiveStudent());
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const hash = window.location.hash.replace('#', '');
     if (hash === 'browse' || hash === 'upload' || hash === 'landing') {
@@ -29,27 +30,10 @@ export default function App() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [filterMyNotes, setFilterMyNotes] = useState<boolean>(false);
 
-  // Sync authentication state across the application & update Firestore 'users' collection
+  // Optional background auth sync if user ever signs in
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-      if (firebaseUser) {
-        setHasEntered(true);
-        try {
-          // Sync student profile to Firestore 'users' collection
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
-          await setDoc(userDocRef, {
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Student',
-            email: firebaseUser.email,
-            photoURL: firebaseUser.photoURL || '',
-            role: 'student',
-            lastLoginAt: serverTimestamp(),
-          }, { merge: true });
-        } catch (syncErr) {
-          console.warn("Could not sync user profile to Firestore:", syncErr);
-        }
-      }
     });
     return () => unsubscribe();
   }, []);
@@ -192,12 +176,17 @@ export default function App() {
     navigateToTab('browse');
   };
 
+  const handleStudentLogout = () => {
+    logoutStudent();
+    setStudent(null);
+    setFilterMyNotes(false);
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
       setUser(null);
-      setFilterMyNotes(false);
-      setHasEntered(false);
+      handleStudentLogout();
     } catch (err) {
       console.error("Logout error:", err);
     }
@@ -206,7 +195,7 @@ export default function App() {
   const handlePublish = async (payload: UploadNotePayload) => {
     try {
       const noteId = Math.random().toString(36).substr(2, 9);
-      const defaultAuthor = user?.displayName || user?.email?.split('@')[0] || 'Student Contributor';
+      const defaultAuthor = student?.name || user?.displayName || user?.email?.split('@')[0] || 'Student Contributor';
       const author = payload.authorName?.trim() || defaultAuthor;
       const initials = author.substring(0, 2).toUpperCase() || 'ST';
       const uploadedFile = payload.file;
@@ -230,7 +219,7 @@ export default function App() {
         subject: payload.subject,
         department: payload.department || 'general',
         grade: payload.grade,
-        schoolName: payload.schoolName || 'General School Repository',
+        schoolName: payload.schoolName || student?.schoolName || 'General School Repository',
         schoolCode: payload.schoolCode || `NOTE${Math.floor(100 + Math.random() * 900)}`,
         pages: Math.max(1, Math.round(sizeMB * 8) || 12),
         sizeMB,
@@ -239,12 +228,12 @@ export default function App() {
         author: {
           name: author,
           initials: initials,
-          badge: user ? 'Verified Author' : 'Verified Student',
-          badgeStyle: user ? 'bg-emerald-100 text-emerald-800' : 'bg-primary-container text-on-primary'
+          badge: student ? `Class ${student.grade} Student` : (user ? 'Verified Author' : 'Verified Student'),
+          badgeStyle: student ? 'bg-blue-100 text-blue-800' : (user ? 'bg-emerald-100 text-emerald-800' : 'bg-primary-container text-on-primary')
         },
         thumbnailUrl: 'https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=600',
         isPdf,
-        ownerId: user ? user.uid : 'community_contributor',
+        ownerId: student ? student.id : (user ? user.uid : 'community_contributor'),
         createdAt: serverTimestamp(),
         ...(fileName ? { fileName } : {}),
         ...(fileType ? { fileType } : {}),
@@ -253,6 +242,15 @@ export default function App() {
       };
 
       await setDoc(doc(db, 'notes', noteId), newNote);
+      try {
+        const stored = JSON.parse(localStorage.getItem('notesvault_my_uploaded_ids') || '[]');
+        if (!stored.includes(noteId)) {
+          stored.push(noteId);
+          localStorage.setItem('notesvault_my_uploaded_ids', JSON.stringify(stored));
+        }
+      } catch {
+        // ignore
+      }
       navigateToTab('browse');
     } catch (error) {
       console.error("Publish error:", error);
@@ -264,13 +262,13 @@ export default function App() {
     }
   };
 
-  // If user hasn't entered the app, show the dedicated First Start Page with Sign In system
-  if (!hasEntered) {
+  // If student is not logged in, always show the First Page (Register / Login)
+  if (!student) {
     return (
-      <SplashAuthScreen
-        onGoogleSignIn={loginWithGoogle}
-        user={user}
-        onEnterApp={() => setHasEntered(true)}
+      <StudentAuthScreen
+        onAuthSuccess={(newStudent) => {
+          setStudent(newStudent);
+        }}
       />
     );
   }
@@ -285,7 +283,9 @@ export default function App() {
         }} 
         onBack={handleBack}
         user={user}
+        student={student}
         onLogout={handleLogout}
+        onStudentLogout={handleStudentLogout}
         onFilterMyNotes={handleOpenMyNotes}
       />
       
@@ -302,6 +302,7 @@ export default function App() {
             onUploadClick={handleUploadClick} 
             onBackToHome={() => navigateToTab('landing')}
             user={user}
+            student={student}
             initialFilterMyNotes={filterMyNotes}
           />
         )}
@@ -310,6 +311,7 @@ export default function App() {
             onPublish={handlePublish} 
             onCancel={handleBack} 
             user={user}
+            student={student}
           />
         )}
       </main>

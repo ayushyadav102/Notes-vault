@@ -1,3 +1,13 @@
+export interface StudentUser {
+  id: string;
+  studentId: string;
+  name: string;
+  grade?: number;
+  schoolName?: string;
+  role?: string;
+  createdAt?: any;
+}
+
 export interface Note {
   id: string;
   title: string;

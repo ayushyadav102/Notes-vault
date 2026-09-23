@@ -1,13 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { NotesVaultLogo } from './NotesVaultLogo';
+import { StudentUser } from '../types';
 
 interface NavbarProps {
   activeTab: 'landing' | 'browse' | 'upload';
   onTabChange: (tab: 'landing' | 'browse' | 'upload') => void;
   onBack: () => void;
   user: User | null;
+  student?: StudentUser | null;
   onLogout: () => Promise<void>;
+  onStudentLogout?: () => void;
+  onOpenLogin?: () => void;
   onFilterMyNotes?: () => void;
 }
 
@@ -16,7 +20,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabChange,
   onBack,
   user,
+  student,
   onLogout,
+  onStudentLogout,
+  onOpenLogin,
   onFilterMyNotes,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,8 +44,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [menuOpen]);
 
-  const userName = user?.displayName || user?.email?.split('@')[0] || 'Student';
-  const userInitial = userName.charAt(0).toUpperCase();
+  const displayName = student?.name || user?.displayName || user?.email?.split('@')[0] || 'Student';
+  const displayInitial = displayName.charAt(0).toUpperCase();
+  const studentGrade = student?.grade ? `Class ${student.grade}` : '';
+  const studentSchool = student?.schoolName || '';
 
   return (
     <header className="fixed top-0 left-0 right-0 w-full z-50 bg-white/95 backdrop-blur-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border-b border-slate-200/80">
@@ -48,7 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {activeTab !== 'landing' && (
             <button
               onClick={onBack}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer border border-slate-200 text-xs font-semibold"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 transition-all cursor-pointer border border-slate-300 text-xs font-bold shadow-2xs active:scale-95"
               title="Go Back"
             >
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -113,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {activeTab !== 'browse' && (
             <button
               onClick={() => onTabChange('browse')}
-              className="hidden xs:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold transition-all cursor-pointer border border-slate-200"
+              className="hidden xs:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/80 hover:bg-blue-100 text-blue-800 text-xs sm:text-sm font-bold transition-all cursor-pointer border border-blue-200/90 shadow-2xs"
             >
               <span className="material-symbols-outlined text-[17px]">search</span>
               <span>Search</span>
@@ -123,38 +132,36 @@ export const Navbar: React.FC<NavbarProps> = ({
           {activeTab !== 'upload' && (
             <button
               onClick={() => onTabChange('upload')}
-              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-[#164373] text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow transition-all cursor-pointer border-none active:scale-95"
+              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white text-xs sm:text-sm font-extrabold shadow-md shadow-blue-500/25 hover:shadow-lg transition-all cursor-pointer border-none active:scale-95"
             >
-              <span className="material-symbols-outlined text-[17px]">cloud_upload</span>
+              <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
               <span className="hidden sm:inline">Upload</span>
               <span className="sm:hidden">Post</span>
             </button>
           )}
 
-          {/* User Authentication Status / Profile Menu */}
-          {user ? (
+          {/* Student / User Authentication Status / Profile Menu */}
+          {(student || user) ? (
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-all cursor-pointer"
-                title="Account Settings"
+                className="flex items-center gap-1.5 p-1 pl-1.5 pr-2.5 rounded-full bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-blue-400 transition-all cursor-pointer shadow-2xs"
+                title="Student Profile"
               >
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={userName}
-                    className="w-7 h-7 rounded-full object-cover border border-white shadow-2xs"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
-                    {userInitial}
-                  </div>
-                )}
-                <span className="text-xs font-bold text-slate-800 hidden sm:inline max-w-[100px] truncate">
-                  {userName}
-                </span>
+                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#0b2545] to-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+                  {displayInitial}
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-bold text-slate-800 hidden sm:inline max-w-[110px] truncate leading-tight">
+                    {displayName}
+                  </span>
+                  {studentGrade && (
+                    <span className="text-[9px] font-semibold text-blue-700 hidden sm:inline leading-none">
+                      {studentGrade}
+                    </span>
+                  )}
+                </div>
                 <span className="material-symbols-outlined text-[16px] text-slate-500">
                   {menuOpen ? 'expand_less' : 'expand_more'}
                 </span>
@@ -164,25 +171,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in duration-100">
                   <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-3">
-                    {user.photoURL ? (
-                      <img
-                        src={user.photoURL}
-                        alt={userName}
-                        className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-sm">
-                        {userInitial}
-                      </div>
-                    )}
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#0b2545] to-blue-600 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0">
+                      {displayInitial}
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-slate-900 truncate">{userName}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-700 font-semibold mt-0.5">
-                        <span className="material-symbols-outlined text-[12px]">verified</span>
-                        <span>Google Verified</span>
-                      </span>
+                      <p className="text-xs font-bold text-slate-900 truncate">{displayName}</p>
+                      {student && (
+                        <p className="text-[11px] font-mono text-blue-700 truncate font-semibold">
+                          @{student.studentId}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-slate-500 truncate">
+                        {studentSchool || 'NotesVault Scholar'}
+                      </p>
                     </div>
                   </div>
 
@@ -221,18 +222,33 @@ export const Navbar: React.FC<NavbarProps> = ({
                       type="button"
                       onClick={() => {
                         setMenuOpen(false);
-                        onLogout();
+                        if (onStudentLogout) {
+                          onStudentLogout();
+                        } else {
+                          onLogout();
+                        }
                       }}
                       className="w-full px-4 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer border-none bg-transparent"
                     >
                       <span className="material-symbols-outlined text-[17px]">logout</span>
-                      <span>Sign Out</span>
+                      <span>Log Out (ID Badlein)</span>
                     </button>
                   </div>
                 </div>
               )}
             </div>
-          ) : null}
+          ) : (
+            onOpenLogin && (
+              <button
+                type="button"
+                onClick={onOpenLogin}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-blue-900 text-white text-xs font-bold transition-all cursor-pointer border-none shadow-xs"
+              >
+                <span className="material-symbols-outlined text-[16px]">person</span>
+                <span>Login / Register</span>
+              </button>
+            )
+          )}
         </div>
       </div>
     </header>

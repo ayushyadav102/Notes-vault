@@ -1,5 +1,22 @@
 {
   "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile in the NotesVault archive without required school/grade fields.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "password": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "maxLength": 50 },
+        "grade": { "type": "number", "minimum": 5, "maximum": 12 },
+        "schoolName": { "type": "string", "maxLength": 150 },
+        "createdAt": { "type": "timestamp" },
+        "lastLoginAt": { "type": "timestamp" }
+      },
+      "required": ["id", "studentId", "name", "password", "role"]
+    },
     "Note": {
       "title": "Note",
       "description": "A study note uploaded by a student or community member.",
@@ -38,6 +55,10 @@
     }
   },
   "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Collection of registered user accounts."
+    },
     "notes/{noteId}": {
       "schema": { "$ref": "#/entities/Note" },
       "description": "Collection of all study notes uploaded by students."

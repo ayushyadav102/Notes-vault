@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
-import { Note } from '../types';
+import { Note, StudentUser } from '../types';
 import { getLocalFile, triggerUniversalDownload, storeLocalFile, fileToDataUrl, deleteLocalFile } from '../lib/fileStorage';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { doc, deleteDoc, updateDoc, serverTimestamp, collection, addDoc, increment, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
@@ -10,6 +10,7 @@ interface DashboardProps {
   onUploadClick: () => void;
   onBackToHome?: () => void;
   user: User | null;
+  student?: StudentUser | null;
   initialFilterMyNotes?: boolean;
 }
 
@@ -18,6 +19,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onUploadClick, 
   onBackToHome,
   user,
+  student,
   initialFilterMyNotes = false,
 }) => {
   const [activeClass, setActiveClass] = useState<string>('all');
@@ -109,6 +111,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const handleStartEdit = (note: Note) => {
+    if (!isMyNote(note)) {
+      setDownloadFeedback({
+        message: 'Aap sirf apne upload kiye huye notes ko hi edit kar sakte hain!',
+        type: 'error'
+      });
+      setTimeout(() => setDownloadFeedback(null), 3500);
+      return;
+    }
     setEditingNote(note);
     setEditTitle(note.title);
     setEditSubject(note.subject);
@@ -120,6 +130,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const handleDeleteNote = async (note: Note) => {
+    if (!isMyNote(note)) {
+      setDownloadFeedback({
+        message: 'Aap kisi doosre student ke notes delete nahi kar sakte!',
+        type: 'error'
+      });
+      setTimeout(() => setDownloadFeedback(null), 3500);
+      setDeletingNote(null);
+      return;
+    }
     setIsDeleting(true);
     try {
       await deleteDoc(doc(db, 'notes', note.id));
@@ -221,11 +240,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  const myNotesCount = user ? notes.filter(n => n.ownerId === user.uid).length : 0;
+  const [myUploadedIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('notesvault_my_uploaded_ids');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const isMyNote = (note: Note) => {
+    if (student) {
+      if (note.ownerId === student.id || note.ownerId === student.studentId) return true;
+    }
+    if (user && note.ownerId === user.uid) return true;
+    return myUploadedIds.includes(note.id);
+  };
+
+  // IMPORTANT: Edit & Delete options are ONLY shown when viewing inside "My Uploaded Notes" (viewFilter === 'mine')
+  // Bahar kisi bhi user ko delete ya edit ka option show nahi hona chahiye!
+  const canManageNote = (note?: Note | null): boolean => {
+    if (!note) return false;
+    if (viewFilter !== 'mine') return false; // Bahar strictly hidden!
+    return isMyNote(note);
+  };
+
+  const myNotesCount = notes.filter(isMyNote).length;
   const bookmarkedNotesCount = notes.filter(n => bookmarks.includes(n.id)).length;
 
   const filteredNotes = notes.filter(n => {
-    if (viewFilter === 'mine' && user && n.ownerId !== user.uid) {
+    if (viewFilter === 'mine' && !isMyNote(n)) {
       return false;
     }
     if (viewFilter === 'bookmarks' && !bookmarks.includes(n.id)) {
@@ -472,7 +516,7 @@ Unique Reference ID: ${uniqueCode}
             <div className="flex items-center gap-2">
               <button
                 type="submit"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#164373] hover:bg-[#0b2545] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer border-none"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white font-extrabold text-sm shadow-md shadow-blue-500/25 hover:shadow-lg active:scale-95 cursor-pointer border-none transition-all"
                 title="Search and directly download matched note"
               >
                 <span className="material-symbols-outlined text-[19px]">download</span>
@@ -528,14 +572,14 @@ Unique Reference ID: ${uniqueCode}
                 <button
                   type="button"
                   onClick={() => setPreviewNote(topMatch)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer border border-slate-200 transition-colors"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 cursor-pointer border border-slate-300 shadow-2xs transition-colors"
                 >
                   View Info
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDownload(topMatch)}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#164373] hover:bg-[#0b2545] text-white cursor-pointer border-none shadow-xs flex items-center gap-1.5 transition-all"
+                  className="px-4 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white cursor-pointer border-none shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all active:scale-95"
                 >
                   <span className="material-symbols-outlined text-[16px]">download</span>
                   <span>Download Now</span>
@@ -547,46 +591,64 @@ Unique Reference ID: ${uniqueCode}
 
         {/* View Switcher: All Notes vs My Notes vs Bookmarks */}
         <div className="flex items-center justify-between gap-3 mb-space-md flex-wrap">
-          <div className="inline-flex p-1 bg-slate-100 border border-slate-200 rounded-xl">
+          <div className="inline-flex p-1 bg-slate-200/80 border border-slate-300/80 rounded-2xl shadow-inner gap-1">
             <button
               type="button"
               onClick={() => setViewFilter('all')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none ${
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-none ${
                 viewFilter === 'all' 
-                  ? 'bg-white text-slate-900 shadow-xs' 
-                  : 'text-slate-600 hover:text-slate-900 bg-transparent'
+                  ? 'bg-gradient-to-r from-slate-900 to-blue-950 text-white shadow-md' 
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/60 bg-transparent'
               }`}
             >
               All Notes ({notes.length})
             </button>
-            {user && (
-              <button
-                type="button"
-                onClick={() => setViewFilter('mine')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center gap-1.5 ${
-                  viewFilter === 'mine' 
-                    ? 'bg-blue-600 text-white shadow-xs' 
-                    : 'text-slate-600 hover:text-slate-900 bg-transparent'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[15px]">person</span>
-                <span>My Uploads ({myNotesCount})</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setViewFilter('mine')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-none flex items-center gap-1.5 ${
+                viewFilter === 'mine' 
+                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-md shadow-blue-500/25' 
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/60 bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">person</span>
+              <span>My Uploads ({myNotesCount})</span>
+            </button>
             <button
               type="button"
               onClick={() => setViewFilter('bookmarks')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center gap-1.5 ${
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-none flex items-center gap-1.5 ${
                 viewFilter === 'bookmarks' 
-                  ? 'bg-amber-600 text-white shadow-xs' 
-                  : 'text-slate-600 hover:text-slate-900 bg-transparent'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/25' 
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/60 bg-transparent'
               }`}
             >
-              <span className="material-symbols-outlined text-[15px]">bookmark</span>
+              <span className="material-symbols-outlined text-[16px]">bookmark</span>
               <span>Saved Bookmarks ({bookmarkedNotesCount})</span>
             </button>
           </div>
         </div>
+
+        {/* Informative banner when viewing "My Uploaded Notes" */}
+        {viewFilter === 'mine' && (
+          <div className="mb-space-md p-3.5 bg-blue-50/90 border border-blue-200 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm text-blue-900 font-medium">
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-blue-700 text-[22px]">verified_user</span>
+              <span>
+                <strong>My Uploads Panel:</strong> Yahan sirf aapke upload kiye huye notes hain. Aap sirf yahan se apne notes ko <strong>Edit</strong> ya <strong>Delete</strong> kar sakte hain. Bahar kisi doosre user ko yeh option nahi dikhega.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onUploadClick}
+              className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg shrink-0 cursor-pointer border-none shadow-2xs text-xs flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[15px]">add</span>
+              <span>Naya Upload</span>
+            </button>
+          </div>
+        )}
 
         {/* Class Filter & Controls */}
         <div className="flex flex-col gap-space-sm mb-space-lg">
@@ -597,7 +659,7 @@ Unique Reference ID: ${uniqueCode}
             </div>
             <span className="font-caption text-caption text-outline">Click to view class notes</span>
           </div>
-          <div className="flex items-center gap-space-xs overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
             {classesList.map(cls => {
               const isActive = activeClass === cls;
               const label = cls === 'all' ? 'All Classes' : `Class ${cls.split('-')[1]}`;
@@ -605,8 +667,10 @@ Unique Reference ID: ${uniqueCode}
                 <button 
                   key={cls}
                   onClick={() => setActiveClass(cls)}
-                  className={`px-space-md py-space-xs rounded-full font-label-md text-label-md flex items-center gap-space-xs whitespace-nowrap transition-all cursor-pointer ${
-                    isActive ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                  className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer border ${
+                    isActive 
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-transparent shadow-md shadow-blue-500/25 scale-[1.02]' 
+                      : 'bg-white text-slate-700 hover:text-blue-700 hover:bg-blue-50/70 border-slate-200/90 shadow-2xs hover:border-blue-300'
                   }`}
                 >
                   <span>{label}</span>
@@ -634,9 +698,13 @@ Unique Reference ID: ${uniqueCode}
           {filteredNotes.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-space-4xl text-center bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30">
               <span className="material-symbols-outlined text-[48px] text-outline-variant mb-space-md">folder_open</span>
-              <h3 className="font-title-lg text-title-lg text-on-surface mb-space-xs">No notes found</h3>
+              <h3 className="font-title-lg text-title-lg text-on-surface mb-space-xs">
+                {viewFilter === 'mine' ? 'Aapne abhi tak koi note upload nahi kiya' : 'No notes found'}
+              </h3>
               <p className="font-body-md text-body-md text-on-surface-variant max-w-sm mb-space-lg">
-                {searchQuery 
+                {viewFilter === 'mine'
+                  ? 'Aapke dwara upload kiye gaye notes yahan dikhenge. Abhi apna pehla note upload karein!'
+                  : searchQuery 
                   ? `No study notes matched "${searchQuery}". Try searching by School Name, Unique ID (e.g. BJS101) or clearing filter.` 
                   : 'There are no notes available for this class yet.'}
               </p>
@@ -650,7 +718,7 @@ Unique Reference ID: ${uniqueCode}
               ) : (
                 <button 
                   onClick={onUploadClick}
-                  className="bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md py-space-sm px-space-lg rounded-lg flex items-center justify-center gap-space-xs transition-colors cursor-pointer border-none"
+                  className="bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md py-space-sm px-space-lg rounded-lg flex items-center justify-center gap-space-xs transition-colors cursor-pointer border-none font-bold"
                 >
                   <span className="material-symbols-outlined text-[18px]">add</span>
                   <span>Upload a Note</span>
@@ -708,31 +776,34 @@ Unique Reference ID: ${uniqueCode}
                       </span>
                     </button>
 
-                    {/* Quick Edit Action Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartEdit(note);
-                      }}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer border border-slate-200/60 bg-white"
-                      title="Edit Note & PDF (Firebase)"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">edit</span>
-                    </button>
+                    {/* Quick Edit & Delete Action Buttons: ONLY visible inside "My Uploads" for student's own notes */}
+                    {canManageNote(note) && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEdit(note);
+                          }}
+                          className="p-1.5 rounded-lg text-blue-700 hover:text-blue-900 hover:bg-blue-100 transition-colors cursor-pointer border border-blue-300 bg-blue-50"
+                          title="Edit Note Details or PDF"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                        </button>
 
-                    {/* Quick Delete Action Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeletingNote(note);
-                      }}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer border border-slate-200/60 bg-white"
-                      title="Delete Note (Firebase)"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">delete</span>
-                    </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingNote(note);
+                          }}
+                          className="p-1.5 rounded-lg text-rose-700 hover:text-rose-900 hover:bg-rose-100 transition-colors cursor-pointer border border-rose-300 bg-rose-50"
+                          title="Delete My Note"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -758,21 +829,21 @@ Unique Reference ID: ${uniqueCode}
                 </div>
               </div>
               
-              <div className="pt-space-md mt-auto bg-surface-container-low/30 -mx-space-lg -mb-space-lg p-space-md rounded-b-xl border-t border-outline-variant/20">
-                <div className="grid grid-cols-2 gap-space-sm">
+              <div className="pt-space-md mt-auto bg-slate-50/60 -mx-space-lg -mb-space-lg p-space-md rounded-b-2xl border-t border-slate-200/80">
+                <div className="grid grid-cols-2 gap-2.5">
                   <button 
                     onClick={() => setPreviewNote(note)}
-                    className="bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md py-2 px-space-sm rounded-lg flex items-center justify-center gap-1 transition-colors cursor-pointer border-none"
+                    className="bg-white hover:bg-blue-50/70 text-slate-800 hover:text-blue-700 font-bold text-xs sm:text-sm py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-300 shadow-2xs hover:border-blue-400 active:scale-95"
                   >
-                    <span className="material-symbols-outlined text-[16px]">visibility</span>
+                    <span className="material-symbols-outlined text-[17px] text-blue-600">visibility</span>
                     <span>View Info</span>
                   </button>
                   <button 
                     onClick={() => handleDownload(note)}
-                    className="bg-[#164373] hover:bg-[#0b2545] text-white font-bold text-xs sm:text-sm py-2 px-space-sm rounded-lg flex items-center justify-center gap-1.5 shadow-xs hover:shadow-md transition-all cursor-pointer group border-none active:scale-95"
+                    className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white font-extrabold text-xs sm:text-sm py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35 transition-all cursor-pointer group border-none active:scale-95"
                     title="Download Note PDF / Document"
                   >
-                    <span className="material-symbols-outlined text-[16px]">download</span>
+                    <span className="material-symbols-outlined text-[18px]">download</span>
                     <span>Download</span>
                   </button>
                 </div>
@@ -881,47 +952,52 @@ Unique Reference ID: ${uniqueCode}
                   <span>{bookmarks.includes(previewNote.id) ? 'Saved' : 'Save'}</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const noteToEdit = previewNote;
-                    setPreviewNote(null);
-                    handleStartEdit(noteToEdit);
-                  }}
-                  className="px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-blue-200"
-                  title="Edit Note Details or PDF"
-                >
-                  <span className="material-symbols-outlined text-[16px]">edit</span>
-                  <span>Edit Note</span>
-                </button>
+                {/* Edit & Delete in View Info modal ONLY if viewing from My Uploads and is owner */}
+                {canManageNote(previewNote) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const noteToEdit = previewNote;
+                        setPreviewNote(null);
+                        handleStartEdit(noteToEdit);
+                      }}
+                      className="px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-blue-200"
+                      title="Edit Note Details or PDF"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                      <span>Edit Note</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const noteToDelete = previewNote;
-                    setPreviewNote(null);
-                    setDeletingNote(noteToDelete);
-                  }}
-                  className="px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-rose-200"
-                  title="Delete Note"
-                >
-                  <span className="material-symbols-outlined text-[16px]">delete</span>
-                  <span>Delete</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const noteToDelete = previewNote;
+                        setPreviewNote(null);
+                        setDeletingNote(noteToDelete);
+                      }}
+                      className="px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-rose-200"
+                      title="Delete Note"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                      <span>Delete</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="flex gap-2">
                 <button 
                   onClick={() => setPreviewNote(null)}
-                  className="px-space-md py-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md rounded-lg cursor-pointer transition-colors border-none"
+                  className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs sm:text-sm rounded-xl cursor-pointer transition-colors border border-slate-300 shadow-2xs"
                 >
                   Close
                 </button>
                 <button 
                   onClick={() => handleDownload(previewNote)}
-                  className="px-4 py-2 bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md rounded-lg flex items-center gap-space-xs transition-colors cursor-pointer border-none font-bold"
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white font-extrabold text-xs sm:text-sm rounded-xl flex items-center gap-2 shadow-md shadow-blue-500/25 hover:shadow-lg transition-all cursor-pointer border-none active:scale-95"
                 >
-                  <span className="material-symbols-outlined text-[18px]">download</span>
+                  <span className="material-symbols-outlined text-[19px]">download</span>
                   <span>Download File</span>
                 </button>
               </div>
@@ -961,7 +1037,7 @@ Unique Reference ID: ${uniqueCode}
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setDeletingNote(null)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer border-none disabled:opacity-50"
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -969,7 +1045,7 @@ Unique Reference ID: ${uniqueCode}
                 type="button"
                 disabled={isDeleting}
                 onClick={() => handleDeleteNote(deletingNote)}
-                className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer border-none shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl text-sm font-black text-white bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 shadow-md shadow-rose-500/25 hover:shadow-lg transition-all cursor-pointer border-none flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
               >
                 <span className={`material-symbols-outlined text-[18px] ${isDeleting ? 'animate-spin' : ''}`}>
                   {isDeleting ? 'sync' : 'delete'}
@@ -1176,14 +1252,14 @@ Unique Reference ID: ${uniqueCode}
                   type="button"
                   disabled={isSavingEdit}
                   onClick={() => setEditingNote(null)}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer border-none disabled:opacity-50"
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingEdit}
-                  className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-[#164373] transition-colors cursor-pointer border-none shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl text-sm font-black text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 shadow-md shadow-blue-500/25 hover:shadow-lg transition-all cursor-pointer border-none flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
                 >
                   <span className={`material-symbols-outlined text-[18px] ${isSavingEdit ? 'animate-spin' : ''}`}>
                     {isSavingEdit ? 'sync' : 'save'}

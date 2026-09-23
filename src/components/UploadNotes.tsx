@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { Note } from '../types';
+import { Note, StudentUser } from '../types';
 
 export interface UploadNotePayload {
   title: string;
@@ -17,31 +17,37 @@ interface UploadNotesProps {
   onPublish: (payload: UploadNotePayload) => Promise<void> | void;
   onCancel: () => void;
   user?: User | null;
+  student?: StudentUser | null;
 }
 
 export const UploadNotes: React.FC<UploadNotesProps> = ({ 
   onPublish, 
   onCancel,
   user,
+  student,
 }) => {
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
   const [authorName, setAuthorName] = useState(() => {
-    return user?.displayName || user?.email?.split('@')[0] || '';
+    return student?.name || user?.displayName || user?.email?.split('@')[0] || '';
   });
-  const [schoolName, setSchoolName] = useState('');
+  const [schoolName, setSchoolName] = useState(() => student?.schoolName || '');
   const [schoolCode, setSchoolCode] = useState('');
-  const [grade, setGrade] = useState<number>(5);
+  const [grade, setGrade] = useState<number>(() => student?.grade || 10);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-sync user's name when auth state changes if field hasn't been edited
+  // Auto-sync student details when student or user state is ready
   useEffect(() => {
-    if (user && !authorName) {
+    if (student) {
+      if (!authorName) setAuthorName(student.name);
+      if (!schoolName && student.schoolName) setSchoolName(student.schoolName);
+      if (student.grade) setGrade(student.grade);
+    } else if (user && !authorName) {
       setAuthorName(user.displayName || user.email?.split('@')[0] || '');
     }
-  }, [user]);
+  }, [student, user]);
 
   const gradesList = [5, 6, 7, 8, 9, 10, 11, 12];
 
@@ -249,16 +255,16 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
                 <label className="font-label-md text-label-md text-on-surface">
                   Class <span className="text-error">*</span>
                 </label>
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-space-xs">
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
                   {gradesList.map(g => (
                     <button 
                       key={g}
                       type="button"
                       onClick={() => setGrade(g)}
-                      className={`py-space-xs px-space-xs rounded-lg text-center font-label-md text-label-md transition-all cursor-pointer ${
+                      className={`py-2 px-1.5 rounded-xl text-center text-xs font-bold transition-all cursor-pointer border ${
                         grade === g 
-                          ? 'bg-[#164373] text-white font-bold shadow-sm' 
-                          : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black shadow-md shadow-blue-500/25 border-transparent scale-105' 
+                          : 'bg-white text-slate-700 hover:text-blue-700 hover:bg-blue-50/70 border-slate-200/90 shadow-2xs'
                       }`}
                     >
                       Class {g}
@@ -327,14 +333,14 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
                 <div className="flex items-center gap-space-sm w-full sm:w-auto">
                   <button 
                     onClick={onCancel}
-                    className="w-full sm:w-auto px-space-lg py-2.5 rounded-xl font-semibold text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors text-center cursor-pointer border-none" 
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-sm text-slate-700 bg-white hover:bg-slate-100 transition-colors text-center cursor-pointer border border-slate-300 shadow-2xs" 
                     type="button"
                   >
                     Cancel
                   </button>
                   <button 
                     disabled={!file || isUploading}
-                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-[#164373] disabled:bg-blue-200 disabled:text-blue-800 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border-none active:scale-95" 
+                    className="w-full sm:w-auto px-7 py-3 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer border-none active:scale-95" 
                     type="submit"
                   >
                     <span className={`material-symbols-outlined text-[19px] ${isUploading ? 'animate-spin' : ''}`}>

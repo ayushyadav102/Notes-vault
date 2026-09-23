@@ -66,9 +66,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRoute, user })
           <div className="mt-auto w-full">
             <button
               onClick={() => onSelectRoute('browse')}
-              className="w-full flex items-center justify-center gap-2 text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] py-3.5 px-6 rounded-2xl shadow-md hover:shadow-lg cursor-pointer transition-all border-none font-bold text-sm sm:text-base"
+              className="w-full flex items-center justify-center gap-2 text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 active:scale-[0.98] py-3.5 px-6 rounded-2xl shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/35 cursor-pointer transition-all border-none font-black text-sm sm:text-base"
             >
-              <span className="material-symbols-outlined text-[20px]">travel_explore</span>
+              <span className="material-symbols-outlined text-[22px]">travel_explore</span>
               <span>Open Library</span>
             </button>
           </div>
@@ -93,9 +93,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRoute, user })
             {/* Rich Blueish Action Button */}
             <button
               onClick={() => onSelectRoute('upload')}
-              className="w-full flex items-center justify-center gap-2 text-white bg-[#164373] hover:bg-[#0b2545] active:scale-[0.99] py-3.5 px-6 rounded-2xl shadow-md hover:shadow-lg cursor-pointer transition-all border-none font-bold text-sm sm:text-base"
+              className="w-full flex items-center justify-center gap-2 text-white bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 hover:from-indigo-700 hover:via-blue-700 hover:to-cyan-700 active:scale-[0.98] py-3.5 px-6 rounded-2xl shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/35 cursor-pointer transition-all border-none font-black text-sm sm:text-base"
             >
-              <span className="material-symbols-outlined text-[20px]">upload_file</span>
+              <span className="material-symbols-outlined text-[22px]">upload_file</span>
               <span>Upload Study Material</span>
             </button>
           </div>
