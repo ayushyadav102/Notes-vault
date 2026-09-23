@@ -137,14 +137,20 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
             </button>
 
             {errorMsg && (
-              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 font-medium text-left leading-relaxed shadow-xs space-y-2.5">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 font-medium text-left leading-relaxed shadow-xs space-y-3">
                 <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                  <span className="material-symbols-outlined text-[18px] text-amber-700">lock</span>
-                  <span>Domain Authorization Required</span>
+                  <span className="material-symbols-outlined text-[18px] text-amber-700">
+                    {errorMsg.includes('authorized nahi') ? 'lock' : 'info'}
+                  </span>
+                  <span>
+                    {errorMsg.includes('authorized nahi') 
+                      ? 'Domain Authorization Required' 
+                      : 'Firebase Authentication Setup'}
+                  </span>
                 </div>
                 <p className="text-slate-700 text-xs">{errorMsg}</p>
 
-                {window.location.hostname !== 'localhost' && (
+                {errorMsg.includes('authorized nahi') && window.location.hostname !== 'localhost' && (
                   <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200 flex items-center justify-between gap-2">
                     <span className="font-mono text-[11px] text-slate-800 truncate select-all">
                       {window.location.hostname}
@@ -162,14 +168,28 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
                   </div>
                 )}
 
-                <div className="pt-1">
+                <div className="flex flex-col gap-2 pt-1">
+                  {/* Direct access button so user or client is NEVER trapped */}
+                  <button
+                    type="button"
+                    onClick={onEnterApp}
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#164373] hover:bg-[#0b2545] text-white font-bold text-xs shadow-xs text-center transition-all cursor-pointer border-none"
+                  >
+                    <span>Direct Access: Continue to Library</span>
+                    <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                  </button>
+
                   <a
-                    href="https://console.firebase.google.com/project/notes-vault-b1141/authentication/settings"
+                    href={
+                      errorMsg.includes('authorized nahi')
+                        ? "https://console.firebase.google.com/project/notes-vault-b1141/authentication/settings"
+                        : "https://console.firebase.google.com/project/notes-vault-b1141/authentication"
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs text-center transition-all"
                   >
-                    <span>Open Firebase Settings</span>
+                    <span>{errorMsg.includes('authorized nahi') ? 'Open Firebase Settings' : 'Enable Auth in Firebase Console'}</span>
                     <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                   </a>
                 </div>

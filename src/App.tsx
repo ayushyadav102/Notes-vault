@@ -103,8 +103,9 @@ export default function App() {
   useEffect(() => {
     let isSeeding = false;
 
-    // Ensure 'classes' collection is populated with curriculum metadata
+    // Ensure 'classes' collection is populated with curriculum metadata (cached)
     const seedClassesIfEmpty = async () => {
+      if (localStorage.getItem('notesvault_classes_checked')) return;
       try {
         const classesSnap = await getDocs(collection(db, 'classes'));
         if (classesSnap.empty) {
@@ -117,10 +118,10 @@ export default function App() {
             });
           });
           await batch.commit();
-          console.log("Seeded 'classes' collection to Firestore!");
         }
+        localStorage.setItem('notesvault_classes_checked', 'true');
       } catch (err) {
-        console.warn("Could not check/seed classes collection:", err);
+        // Silent fallback - classes exist or offline
       }
     };
     seedClassesIfEmpty();

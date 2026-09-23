@@ -7,12 +7,37 @@ import {
   setPersistence, 
   browserLocalPersistence 
 } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  getFirestore, 
+  doc, 
+  getDocFromServer,
+  persistentLocalCache,
+  persistentMultipleTabManager 
+} from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 const rawDbId = (firebaseConfig as any).firestoreDatabaseId;
-export const db = (!rawDbId || rawDbId === '(default)') ? getFirestore(app) : getFirestore(app, rawDbId);
+const dbId = (!rawDbId || rawDbId === '(default)') ? undefined : rawDbId;
+
+let firestoreInstance;
+try {
+  firestoreInstance = initializeFirestore(
+    app,
+    {
+      experimentalAutoDetectLongPolling: true,
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    },
+    dbId
+  );
+} catch (e) {
+  firestoreInstance = dbId ? getFirestore(app, dbId) : getFirestore(app);
+}
+
+export const db = firestoreInstance;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
@@ -42,6 +67,11 @@ export const loginWithGoogle = async () => {
     }
     console.warn("Login notice:", error?.message || error);
     
+    if (error?.code === 'auth/api-key-not-valid' || error?.message?.includes('api-key-not-valid')) {
+      const friendlyMsg = `Firebase Authentication is not activated in project "notes-vault-b1141". Please go to Firebase Console > Authentication > Click "Get started" and enable "Google" sign-in provider.`;
+      throw new Error(friendlyMsg);
+    }
+
     if (error?.code === 'auth/unauthorized-domain') {
       const currentHost = window.location.hostname;
       const friendlyMsg = `Domain "${currentHost}" Firebase me authorized nahi hai. Kripya Firebase Console > Authentication > Settings > Authorized Domains me jaakar "${currentHost}" add karein.`;
