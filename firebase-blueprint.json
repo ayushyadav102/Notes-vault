@@ -2,12 +2,14 @@
   "entities": {
     "Note": {
       "title": "Note",
-      "description": "A study note uploaded by a student.",
+      "description": "A study note uploaded by a student or community member.",
       "type": "object",
       "properties": {
         "title": { "type": "string", "maxLength": 100 },
         "subject": { "type": "string", "maxLength": 50 },
         "department": { "type": "string", "maxLength": 50 },
+        "schoolName": { "type": "string", "maxLength": 100 },
+        "schoolCode": { "type": "string", "maxLength": 50 },
         "grade": { "type": "number", "minimum": 5, "maximum": 12 },
         "pages": { "type": "number", "minimum": 1 },
         "sizeMB": { "type": "number", "minimum": 0 },
@@ -25,6 +27,9 @@
         },
         "thumbnailUrl": { "type": "string", "maxLength": 500 },
         "isPdf": { "type": "boolean" },
+        "fileName": { "type": "string", "maxLength": 200 },
+        "fileType": { "type": "string", "maxLength": 100 },
+        "fileData": { "type": "string", "maxLength": 900000 },
         "ownerId": { "type": "string", "maxLength": 128 },
         "createdAt": { "type": "timestamp" }
       },

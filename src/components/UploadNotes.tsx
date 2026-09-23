@@ -1,18 +1,31 @@
 import React, { useState, useRef } from 'react';
 import { Note } from '../types';
 
+export interface UploadNotePayload {
+  title: string;
+  subject: string;
+  department: string;
+  grade: number;
+  schoolName: string;
+  schoolCode: string;
+  authorName?: string;
+  file?: File | null;
+}
+
 interface UploadNotesProps {
-  onPublish: (note: Omit<Note, 'id' | 'reviews' | 'rating' | 'author' | 'thumbnailUrl' | 'isPdf' | 'sizeMB' | 'pages' | 'ownerId'>) => void;
+  onPublish: (payload: UploadNotePayload) => Promise<void> | void;
   onCancel: () => void;
 }
 
 export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel }) => {
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
+  const [authorName, setAuthorName] = useState('');
   const [schoolName, setSchoolName] = useState('');
   const [schoolCode, setSchoolCode] = useState('');
   const [grade, setGrade] = useState<number>(5);
   const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const gradesList = [5, 6, 7, 8, 9, 10, 11, 12];
@@ -58,22 +71,31 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !subject || !grade) return;
+    if (!title || !subject || !grade || !file) return;
     
-    // Fallback schoolCode if left empty
-    const finalCode = schoolCode.trim() || (schoolName ? generateAutoId(schoolName) : 'NOTE101');
-    const finalSchoolName = schoolName.trim() || 'General School Repository';
+    setIsUploading(true);
+    try {
+      // Fallback schoolCode if left empty
+      const finalCode = schoolCode.trim() || (schoolName ? generateAutoId(schoolName) : 'NOTE101');
+      const finalSchoolName = schoolName.trim() || 'General School Repository';
 
-    onPublish({
-      title,
-      subject,
-      department: 'general',
-      grade,
-      schoolName: finalSchoolName,
-      schoolCode: finalCode.toUpperCase(),
-    });
+      await onPublish({
+        title,
+        subject,
+        department: 'general',
+        grade,
+        schoolName: finalSchoolName,
+        schoolCode: finalCode.toUpperCase(),
+        authorName: authorName.trim() || 'Student Contributor',
+        file,
+      });
+    } catch (err) {
+      console.error('Publish error:', err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -170,6 +192,22 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                 />
               </div>
 
+              {/* Author / Contributor Name */}
+              <div className="flex flex-col gap-space-xs">
+                <label className="font-label-md text-label-md text-on-surface" htmlFor="author-name">
+                  Author / Contributor Name <span className="text-slate-400 font-normal text-xs">(Optional)</span>
+                </label>
+                <input 
+                  id="author-name" 
+                  maxLength={50}
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  className="w-full bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline/70 px-space-md py-space-sm rounded-lg focus:bg-surface-container-lowest focus:outline-none border border-outline-variant/30 focus:border-primary shadow-sm transition-all" 
+                  placeholder="e.g., Ayush Ahir, Rahul Sharma (Default: Student Contributor)" 
+                  type="text" 
+                />
+              </div>
+
               <div className="flex flex-col gap-space-xs">
                 <label className="font-label-md text-label-md text-on-surface">
                   Class <span className="text-error">*</span>
@@ -258,12 +296,14 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
                     Cancel
                   </button>
                   <button 
-                    disabled={!file}
+                    disabled={!file || isUploading}
                     className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-[#164373] disabled:bg-blue-200 disabled:text-blue-800 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border-none active:scale-95" 
                     type="submit"
                   >
-                    <span className="material-symbols-outlined text-[19px]">cloud_upload</span>
-                    <span>Publish Note</span>
+                    <span className={`material-symbols-outlined text-[19px] ${isUploading ? 'animate-spin' : ''}`}>
+                      {isUploading ? 'sync' : 'cloud_upload'}
+                    </span>
+                    <span>{isUploading ? 'Uploading & Saving File...' : 'Publish Note'}</span>
                   </button>
                 </div>
               </div>

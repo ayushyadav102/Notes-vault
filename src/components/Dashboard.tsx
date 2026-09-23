@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Note } from '../types';
+import { getLocalFile, triggerUniversalDownload } from '../lib/fileStorage';
 
 interface DashboardProps {
   notes: Note[];
@@ -85,11 +86,52 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick, onBa
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleDownload = (note: Note) => {
-    const uniqueCode = note.schoolCode || `NV-${note.id.slice(0, 6).toUpperCase()}`;
-    const schoolName = note.schoolName || 'General School Archive';
+  const handleDownload = async (note: Note) => {
+    try {
+      const uniqueCode = note.schoolCode || `NV-${note.id.slice(0, 6).toUpperCase()}`;
+      const schoolName = note.schoolName || 'General School Archive';
 
-    const content = `=====================================================
+      // 1. Check local device IndexedDB storage for the actual uploaded file
+      const localStored = await getLocalFile(note.id);
+      if (localStored && localStored.blob) {
+        const ext = localStored.fileName.split('.').pop() || (note.isPdf ? 'pdf' : 'pdf');
+        const finalName = localStored.fileName || `${uniqueCode}_${note.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.${ext}`;
+        
+        triggerUniversalDownload(
+          localStored.blob,
+          finalName,
+          localStored.fileType || 'application/pdf'
+        );
+
+        setDownloadFeedback({
+          message: `Direct Download started for "${finalName}"!`,
+          type: 'success'
+        });
+        setTimeout(() => setDownloadFeedback(null), 4000);
+        return;
+      }
+
+      // 2. Check if note has real fileData synced from cloud (Firestore)
+      if (note.fileData) {
+        const ext = note.fileName ? note.fileName.split('.').pop() : (note.isPdf ? 'pdf' : 'pdf');
+        const finalName = note.fileName || `${uniqueCode}_${note.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.${ext}`;
+        
+        triggerUniversalDownload(
+          note.fileData,
+          finalName,
+          note.fileType || 'application/pdf'
+        );
+
+        setDownloadFeedback({
+          message: `Direct Download started for "${finalName}"!`,
+          type: 'success'
+        });
+        setTimeout(() => setDownloadFeedback(null), 4000);
+        return;
+      }
+
+      // 3. Fallback for sample / seed notes: Generate formatted academic text document
+      const content = `=====================================================
 NOTESVAULT - ACADEMIC STUDY NOTES ARCHIVE
 =====================================================
 Title:        ${note.title}
@@ -111,16 +153,23 @@ Unique Reference ID: ${uniqueCode}
 [Study Material & Academic Content]
 =====================================================`;
 
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const safeTitle = note.title.replace(/[^a-zA-Z0-9_-]/g, '_');
-    a.download = `${uniqueCode}_${safeTitle}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const safeTitle = note.title.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `${uniqueCode}_${safeTitle}.txt`;
+      triggerUniversalDownload(content, filename, 'text/plain;charset=utf-8');
+
+      setDownloadFeedback({
+        message: `Download started for "${filename}"!`,
+        type: 'success'
+      });
+      setTimeout(() => setDownloadFeedback(null), 4000);
+    } catch (err) {
+      console.error("Download error:", err);
+      setDownloadFeedback({
+        message: 'Download shuru karne me samasya aayi. Kripya punah koshish karein.',
+        type: 'error'
+      });
+      setTimeout(() => setDownloadFeedback(null), 4000);
+    }
   };
 
   return (
