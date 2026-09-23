@@ -138,23 +138,74 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
               </span>
             </button>
 
-            {errorMsg && (
-              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 font-medium text-left leading-relaxed shadow-xs">
-                <div className="flex items-center gap-1.5 font-bold text-amber-900 mb-1">
-                  <span className="material-symbols-outlined text-[18px] text-amber-700">info</span>
-                  <span>Sign In Notice</span>
+            {/* Continue as Student / Guest Button */}
+            {onGuestSignIn && !errorMsg && (
+              <>
+                <div className="flex items-center gap-2 my-1">
+                  <div className="flex-1 h-px bg-slate-200"></div>
+                  <span className="text-[11px] text-slate-400 font-medium">OR</span>
+                  <div className="flex-1 h-px bg-slate-200"></div>
                 </div>
-                <p className="mb-2.5 text-slate-700">{errorMsg}</p>
-                {onGuestSignIn && (
-                  <button
-                    type="button"
-                    onClick={onGuestSignIn}
-                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-600 hover:bg-[#164373] text-white font-bold text-xs shadow-xs cursor-pointer border-none transition-all active:scale-95"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">school</span>
-                    <span>Enter as Guest</span>
-                  </button>
+
+                <button
+                  type="button"
+                  onClick={onGuestSignIn}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-[#164373] bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-[0.99]"
+                >
+                  <span className="material-symbols-outlined text-[18px]">school</span>
+                  <span>Continue as Student (Direct Access)</span>
+                </button>
+              </>
+            )}
+
+            {errorMsg && (
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 font-medium text-left leading-relaxed shadow-xs space-y-2.5">
+                <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                  <span className="material-symbols-outlined text-[18px] text-amber-700">lock</span>
+                  <span>Domain Authorization Required</span>
+                </div>
+                <p className="text-slate-700 text-xs">{errorMsg}</p>
+
+                {window.location.hostname !== 'localhost' && (
+                  <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200 flex items-center justify-between gap-2">
+                    <span className="font-mono text-[11px] text-slate-800 truncate select-all">
+                      {window.location.hostname}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(window.location.hostname);
+                        alert(`Copied "${window.location.hostname}"! Ab Firebase Console me add karein.`);
+                      }}
+                      className="text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 px-2 py-1 rounded border border-blue-200 cursor-pointer flex-shrink-0"
+                    >
+                      Copy Domain
+                    </button>
+                  </div>
                 )}
+
+                <div className="pt-1 flex flex-col gap-2">
+                  <a
+                    href="https://console.firebase.google.com/project/notes-vault-b1141/authentication/settings"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs text-center transition-all"
+                  >
+                    <span>Open Firebase Settings</span>
+                    <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                  </a>
+
+                  {onGuestSignIn && (
+                    <button
+                      type="button"
+                      onClick={onGuestSignIn}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-600 hover:bg-[#164373] text-white font-bold text-xs shadow-xs cursor-pointer border-none transition-all active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">school</span>
+                      <span>Continue as Guest (Bina Sign In ke)</span>
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

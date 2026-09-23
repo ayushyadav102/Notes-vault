@@ -1,12 +1,10 @@
 {
-  "projectId": "ornate-chemist-rq6d2",
-  "appId": "1:877146013868:web:113fb4c5d2377859c19f09",
-  "apiKey": "AIzaSyBignuX0QMRKDIIDWmFliotlhRXJNvLW8U",
-  "authDomain": "ornate-chemist-rq6d2.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-notesvault-d8dd7104-01df-4289-8afe-f3da22b28c8a",
-  "storageBucket": "ornate-chemist-rq6d2.firebasestorage.app",
-  "messagingSenderId": "877146013868",
-  "measurementId": "",
-  "oAuthClientId": "877146013868-p57oftogijslvhiksn8608i98c4e28ud.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "notes-vault-b1141",
+  "appId": "1:465903580379:web:be89c6efc6b176840a88fe",
+  "apiKey": "AIzaSyDD9dkBiQu7bv71Z3E4cnf18P0RLm-vnfQ",
+  "authDomain": "notes-vault-b1141.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "notes-vault-b1141.firebasestorage.app",
+  "messagingSenderId": "465903580379",
+  "measurementId": "G-5QGPGHCRCB"
 }
