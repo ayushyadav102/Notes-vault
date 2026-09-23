@@ -6,7 +6,9 @@ interface LandingPageProps {
   user: User | null;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRoute }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRoute, user }) => {
+  const userName = user?.displayName || user?.email?.split('@')[0] || '';
+
   return (
     <div className="w-full flex flex-col items-center justify-center min-h-[calc(100vh-64px)] relative overflow-hidden bg-slate-50/60 py-10 sm:py-16">
       {/* Background ambient gradient blurs */}
@@ -14,13 +16,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRoute }) => {
       <div className="absolute bottom-0 left-1/4 w-[450px] h-[450px] bg-indigo-100/40 rounded-full blur-3xl pointer-events-none -z-0"></div>
 
       {/* Header Banner */}
-      <div className="relative z-10 text-center mb-10 px-4 sm:px-6">
+      <div className="relative z-10 text-center mb-8 px-4 sm:px-6">
         <div className="inline-flex items-center gap-2 bg-white shadow-xs rounded-full px-4 py-1.5 mb-4 border border-slate-200">
           <span className="w-2 h-2 rounded-full bg-blue-600 inline-block animate-pulse"></span>
           <span className="text-xs text-blue-800 uppercase tracking-wider font-bold">
             Academic Notes Repository
           </span>
         </div>
+
+        {user ? (
+          <div className="mb-3 inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold animate-in fade-in">
+            {user.photoURL ? (
+              <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover" />
+            ) : (
+              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">
+                {userName.charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span>Welcome, {userName}!</span>
+          </div>
+        ) : null}
+
         <h1 className="text-3xl sm:text-4xl md:text-5xl text-[#0b2545] tracking-tight mb-3 max-w-2xl mx-auto font-black">
           Welcome to NotesVault
         </h1>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NotesVaultLogo } from './NotesVaultLogo';
 
 interface CachedUser {
@@ -11,7 +11,7 @@ interface SplashAuthScreenProps {
   onGoogleSignIn: () => Promise<unknown>;
   onGuestSignIn?: () => void;
   user?: CachedUser | null;
-  onEnterApp?: () => void;
+  onEnterApp: () => void;
   isLoading?: boolean;
 }
 
@@ -22,31 +22,17 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
   onEnterApp,
   isLoading = false,
 }) => {
-  const [countdown, setCountdown] = useState<number>(3);
   const [signingIn, setSigningIn] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // 3-second countdown timer
-  useEffect(() => {
-    if (countdown <= 0) {
-      if (user && onEnterApp) {
-        onEnterApp();
-      }
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [countdown, user, onEnterApp]);
 
   const handleSignIn = async () => {
     setErrorMsg(null);
     setSigningIn(true);
     try {
-      await onGoogleSignIn();
+      const res = await onGoogleSignIn();
+      if (res) {
+        onEnterApp();
+      }
     } catch (err: unknown) {
       console.error('Google Sign In failed:', err);
       const message = err instanceof Error ? err.message : 'Sign in failed. Please try again.';
@@ -72,43 +58,11 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
           <NotesVaultLogo size="xl" showText={true} />
         </div>
 
-        {/* 3-Second Timer Indicator */}
-        <div className="w-full max-w-xs mb-6 flex flex-col items-center">
-          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden mb-2 shadow-inner">
-            <div
-              className="h-full bg-gradient-to-r from-[#1b436e] to-[#0b2545] transition-all duration-1000 ease-linear rounded-full"
-              style={{ width: `${((3 - countdown) / 3) * 100}%` }}
-            />
-          </div>
+        <p className="text-xs sm:text-sm text-slate-600 mb-6">
+          Access verified school notes, PDF study guides, and previous exam materials for Classes 5 to 12.
+        </p>
 
-          <span className="text-xs text-slate-500 font-medium">
-            {user ? (
-              countdown > 0 ? (
-                <span className="inline-flex items-center gap-1.5 text-slate-600">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#164373] animate-pulse" />
-                  Opening library in {countdown}s...
-                </span>
-              ) : (
-                <span className="text-emerald-700 font-semibold inline-flex items-center gap-1">
-                  ✓ Ready! Welcome back
-                </span>
-              )
-            ) : (
-              countdown > 0 ? (
-                <span className="inline-flex items-center gap-1.5 text-slate-600">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#164373] animate-pulse" />
-                  Starting NotesVault in {countdown}s...
-                </span>
-              ) : (
-                <span className="text-emerald-700 font-semibold inline-flex items-center gap-1">
-                  ✓ Ready to sign in
-                </span>
-              )
-            )}
-          </span>
-        </div>
-
-        {/* Dynamic Section: If already logged in, show Welcome & Enter button (NO Sign in button) */}
+        {/* Dynamic Section: If already logged in, show Welcome & Enter button */}
         {user ? (
           <div className="w-full space-y-4">
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center gap-3 text-left">
@@ -116,41 +70,47 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
                 <img
                   src={user.photoURL}
                   alt={userName}
-                  className="w-10 h-10 rounded-full object-cover border border-slate-300 shadow-xs"
+                  className="w-11 h-11 rounded-full object-cover border border-slate-300 shadow-xs"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-[#164373] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                <div className="w-11 h-11 rounded-full bg-[#164373] text-white flex items-center justify-center font-bold text-sm shadow-xs">
                   {userName.charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="flex flex-col min-w-0">
-                <span className="text-xs text-slate-500 font-medium">Already Signed In</span>
+                <span className="text-xs text-slate-500 font-medium">Signed In as</span>
                 <span className="text-sm font-bold text-[#0b2545] truncate">
                   {userName}
+                </span>
+                <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-0.5">
+                  <span className="material-symbols-outlined text-[13px]">verified</span>
+                  <span>Ready to explore</span>
                 </span>
               </div>
             </div>
 
-            {/* Direct Enter Button (No Sign in needed!) */}
+            {/* Direct Enter Button */}
             <button
+              type="button"
               onClick={onEnterApp}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-white bg-[#164373] hover:bg-[#0b2545] shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer active:scale-[0.99]"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-white bg-[#164373] hover:bg-[#0b2545] shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer active:scale-[0.99] border-none"
             >
               <span>Continue to Notes Library</span>
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
           </div>
         ) : (
-          /* First time visitor: Google Sign In Button */
-          <div className="w-full space-y-3">
+          /* First time visitor / Logged out: Primary Google Sign In Button */
+          <div className="w-full space-y-3.5">
             <button
+              type="button"
               onClick={handleSignIn}
               disabled={signingIn || isLoading}
-              className={`w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-2xl font-semibold text-base transition-all duration-300 shadow-md cursor-pointer border ${
+              className={`w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all duration-300 shadow-sm cursor-pointer border ${
                 signingIn || isLoading
                   ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                  : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300 hover:border-slate-400 hover:shadow-lg active:scale-[0.99]'
+                  : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300 hover:border-slate-400 hover:shadow active:scale-[0.99]'
               }`}
             >
               {/* Google G Logo */}
@@ -181,8 +141,8 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
             {errorMsg && (
               <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 font-medium text-left leading-relaxed shadow-xs">
                 <div className="flex items-center gap-1.5 font-bold text-amber-900 mb-1">
-                  <span className="material-symbols-outlined text-[18px] text-amber-700">security_update_warning</span>
-                  <span>Domain Authorization Required</span>
+                  <span className="material-symbols-outlined text-[18px] text-amber-700">info</span>
+                  <span>Sign In Notice</span>
                 </div>
                 <p className="mb-2.5 text-slate-700">{errorMsg}</p>
                 {onGuestSignIn && (
@@ -192,7 +152,7 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
                     className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-600 hover:bg-[#164373] text-white font-bold text-xs shadow-xs cursor-pointer border-none transition-all active:scale-95"
                   >
                     <span className="material-symbols-outlined text-[16px]">school</span>
-                    <span>Continue as Student Guest (Direct Access)</span>
+                    <span>Enter as Guest</span>
                   </button>
                 )}
               </div>
@@ -202,14 +162,14 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
               <button
                 type="button"
                 onClick={onGuestSignIn}
-                className="w-full text-xs text-slate-500 hover:text-slate-800 underline font-medium cursor-pointer bg-transparent border-none py-1"
+                className="w-full text-xs text-slate-500 hover:text-slate-800 underline font-medium cursor-pointer bg-transparent border-none py-1.5 transition-colors"
               >
-                Or Continue as Student Guest
+                Or Continue as Guest
               </button>
             )}
 
             <p className="text-xs text-slate-500 mt-2">
-              Sign in once with Google to get unlimited access to all class notes.
+              Sign in once with Google to upload, edit, and access all class notes.
             </p>
           </div>
         )}
@@ -223,3 +183,4 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
     </div>
   );
 };
+

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { User } from 'firebase/auth';
 import { Note } from '../types';
 import { getLocalFile, triggerUniversalDownload, storeLocalFile, fileToDataUrl, deleteLocalFile } from '../lib/fileStorage';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
@@ -8,14 +9,29 @@ interface DashboardProps {
   notes: Note[];
   onUploadClick: () => void;
   onBackToHome?: () => void;
+  user: User | null;
+  initialFilterMyNotes?: boolean;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick, onBackToHome }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ 
+  notes, 
+  onUploadClick, 
+  onBackToHome,
+  user,
+  initialFilterMyNotes = false,
+}) => {
   const [activeClass, setActiveClass] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [downloadFeedback, setDownloadFeedback] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [showOnlyMine, setShowOnlyMine] = useState<boolean>(initialFilterMyNotes);
+
+  useEffect(() => {
+    if (initialFilterMyNotes) {
+      setShowOnlyMine(true);
+    }
+  }, [initialFilterMyNotes]);
 
   // Edit Note State
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -161,7 +177,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ notes, onUploadClick, onBa
     }
   };
 
+  const myNotesCount = user ? notes.filter(n => n.ownerId === user.uid).length : 0;
+
   const filteredNotes = notes.filter(n => {
+    if (showOnlyMine && user && n.ownerId !== user.uid) {
+      return false;
+    }
     const matchesClass = activeClass === 'all' || `class-${n.grade}` === activeClass;
     if (!matchesClass) return false;
     if (!searchQuery.trim()) return true;
@@ -452,6 +473,37 @@ Unique Reference ID: ${uniqueCode}
           )}
         </div>
 
+        {/* View Switcher: All Notes vs My Notes */}
+        {user && (
+          <div className="flex items-center justify-between gap-3 mb-space-md flex-wrap">
+            <div className="inline-flex p-1 bg-slate-100 border border-slate-200 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setShowOnlyMine(false)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none ${
+                  !showOnlyMine 
+                    ? 'bg-white text-slate-900 shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900 bg-transparent'
+                }`}
+              >
+                All Notes ({notes.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowOnlyMine(true)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center gap-1.5 ${
+                  showOnlyMine 
+                    ? 'bg-blue-600 text-white shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900 bg-transparent'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[15px]">person</span>
+                <span>My Uploads ({myNotesCount})</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Class Filter & Controls */}
         <div className="flex flex-col gap-space-sm mb-space-lg">
           <div className="flex items-center justify-between">
@@ -536,7 +588,15 @@ Unique Reference ID: ${uniqueCode}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {/* My Note Badge */}
+                    {user && note.ownerId === user.uid && (
+                      <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-sans text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs" title="Created by your account">
+                        <span className="material-symbols-outlined text-[12px] text-emerald-700">person</span>
+                        <span>My Note</span>
+                      </span>
+                    )}
+
                     {/* Unique ID Badge */}
                     {note.schoolCode && (
                       <span className="bg-blue-100 text-blue-900 border border-blue-200/90 font-mono text-[11px] font-black px-2 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs tracking-wider" title="Unique School & Note Identifier">

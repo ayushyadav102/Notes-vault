@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { User } from 'firebase/auth';
 import { Note } from '../types';
 
 export interface UploadNotePayload {
@@ -15,18 +16,32 @@ export interface UploadNotePayload {
 interface UploadNotesProps {
   onPublish: (payload: UploadNotePayload) => Promise<void> | void;
   onCancel: () => void;
+  user?: User | null;
 }
 
-export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel }) => {
+export const UploadNotes: React.FC<UploadNotesProps> = ({ 
+  onPublish, 
+  onCancel,
+  user,
+}) => {
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
-  const [authorName, setAuthorName] = useState('');
+  const [authorName, setAuthorName] = useState(() => {
+    return user?.displayName || user?.email?.split('@')[0] || '';
+  });
   const [schoolName, setSchoolName] = useState('');
   const [schoolCode, setSchoolCode] = useState('');
   const [grade, setGrade] = useState<number>(5);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-sync user's name when auth state changes if field hasn't been edited
+  useEffect(() => {
+    if (user && !authorName) {
+      setAuthorName(user.displayName || user.email?.split('@')[0] || '');
+    }
+  }, [user]);
 
   const gradesList = [5, 6, 7, 8, 9, 10, 11, 12];
 
@@ -113,6 +128,28 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({ onPublish, onCancel })
             <div className="mb-space-lg">
                <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight font-bold">Upload Notes</h1>
                <p className="font-body-md text-body-md text-on-surface-variant mt-1">Share your study materials and handwritten notes with the school community.</p>
+
+               {/* Auth Status Banner */}
+               {user && (
+                 <div className="mt-4 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between gap-3">
+                   <div className="flex items-center gap-2.5">
+                     {user.photoURL ? (
+                       <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full object-cover border border-emerald-300" referrerPolicy="no-referrer" />
+                     ) : (
+                       <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">
+                         {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                       </div>
+                     )}
+                     <div>
+                       <div className="text-xs font-bold text-emerald-950 flex items-center gap-1">
+                         <span>Signed in as {user.displayName || user.email}</span>
+                         <span className="material-symbols-outlined text-[15px] text-emerald-600">verified</span>
+                       </div>
+                       <div className="text-[11px] text-emerald-700">This note will be linked to your student account.</div>
+                     </div>
+                   </div>
+                 </div>
+               )}
             </div>
 
             <form className="flex flex-col gap-space-lg" onSubmit={handleSubmit}>
