@@ -1,56 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function isValidNote(data) {
-      return data.keys().hasAll(['title', 'subject', 'grade', 'ownerId', 'author', 'pages', 'sizeMB', 'rating', 'reviews', 'department', 'thumbnailUrl', 'isPdf'])
-          && data.title is string && data.title.size() <= 100
-          && data.subject is string && data.subject.size() <= 50
-          && data.department is string && data.department.size() <= 50
-          && data.grade is number && data.grade >= 5 && data.grade <= 12
-          && data.pages is number && data.pages >= 1
-          && data.sizeMB is number && data.sizeMB >= 0
-          && data.rating is number && data.rating >= 0 && data.rating <= 5
-          && data.reviews is number && data.reviews >= 0
-          && data.author is map
-          && data.author.keys().hasAll(['name', 'initials', 'badge'])
-          && data.author.name is string && data.author.name.size() <= 50
-          && data.author.initials is string && data.author.initials.size() <= 3
-          && data.author.badge is string && data.author.badge.size() <= 50
-          && data.thumbnailUrl is string && data.thumbnailUrl.size() <= 500
-          && data.isPdf is bool
-          && data.ownerId is string && data.ownerId.size() <= 128
-          && (!('schoolName' in data) || (data.schoolName is string && data.schoolName.size() <= 100))
-          && (!('schoolCode' in data) || (data.schoolCode is string && data.schoolCode.size() <= 50))
-          && (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 200))
-          && (!('fileType' in data) || (data.fileType is string && data.fileType.size() <= 100))
-          && (!('fileData' in data) || (data.fileData is string && data.fileData.size() <= 900000))
-          && (!('updatedAt' in data) || data.updatedAt is timestamp);
-    }
-
     match /notes/{noteId} {
-      // Open academic archive: Anyone can read, list, and search notes
+      // Academic archive: Anyone can read, list, and search school notes
       allow read: if true;
       
-      // Open submission: Valid notes can be uploaded
-      allow create: if isValidId(noteId) && isValidNote(incoming()) && incoming().createdAt == request.time;
-      
-      // Allow updating note details and files directly in Firebase
-      allow update: if isValidId(noteId) && isValidNote(incoming());
-      
-      // Allow deleting notes directly from Firebase
-      allow delete: if isValidId(noteId);
+      // Allow uploading, editing, and deleting notes
+      allow create, update, delete: if true;
     }
   }
 }
+

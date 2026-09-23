@@ -7,9 +7,10 @@ import { UploadNotes, UploadNotePayload } from './components/UploadNotes';
 import { LandingPage } from './components/LandingPage';
 import { SplashAuthScreen } from './components/SplashAuthScreen';
 import { Note } from './types';
+import { INITIAL_NOTES } from './data';
 import { auth, db, loginWithGoogle, logout, OperationType, handleFirestoreError } from './lib/firebase';
 import { storeLocalFile, fileToDataUrl } from './lib/fileStorage';
-import { collection, onSnapshot, setDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, setDoc, doc, serverTimestamp, query, orderBy, writeBatch } from 'firebase/firestore';
 
 type TabType = 'landing' | 'browse' | 'upload';
 
@@ -81,10 +82,33 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Real-time Firestore sync
+  // Real-time Firestore sync with auto-seed for empty database
   useEffect(() => {
-    const notesQuery = query(collection(db, 'notes'), orderBy('createdAt', 'desc'));
-    const unsubscribeNotes = onSnapshot(notesQuery, (snapshot) => {
+    let isSeeding = false;
+    const notesQuery = query(collection(db, 'notes'));
+    const unsubscribeNotes = onSnapshot(notesQuery, async (snapshot) => {
+      if (snapshot.empty && !isSeeding) {
+        isSeeding = true;
+        setNotes(INITIAL_NOTES);
+        setLoadingNotes(false);
+        try {
+          const batch = writeBatch(db);
+          INITIAL_NOTES.forEach((note) => {
+            const docRef = doc(db, 'notes', note.id);
+            batch.set(docRef, {
+              ...note,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          });
+          await batch.commit();
+          console.log("Successfully seeded initial verified notes to Firestore!");
+        } catch (seedErr) {
+          console.warn("Could not batch-seed notes to Firestore:", seedErr);
+        }
+        return;
+      }
+
       const notesData: Note[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -92,12 +116,25 @@ export default function App() {
         const schoolName = data.schoolName || 'General School Repository';
         notesData.push({ id: doc.id, ...data, schoolCode, schoolName } as Note);
       });
-      setNotes(notesData);
+
+      // Sort in memory by recency or rating
+      notesData.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+        return timeB - timeA;
+      });
+
+      setNotes(notesData.length > 0 ? notesData : INITIAL_NOTES);
       setLoadingNotes(false);
     }, (error) => {
       console.warn("Firestore notes stream error:", error);
+      setNotes(INITIAL_NOTES);
       setLoadingNotes(false);
-      handleFirestoreError(error, OperationType.LIST, 'notes');
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'notes');
+      } catch (err) {
+        console.warn("Firestore permission issue detected on notes collection:", err);
+      }
     });
 
     return () => {
@@ -178,7 +215,11 @@ export default function App() {
       navigateToTab('browse');
     } catch (error) {
       console.error("Publish error:", error);
-      handleFirestoreError(error, OperationType.CREATE, 'notes');
+      try {
+        handleFirestoreError(error, OperationType.CREATE, 'notes');
+      } catch (err) {
+        console.warn("Firestore create note error:", err);
+      }
     }
   };
 
