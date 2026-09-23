@@ -252,3 +252,89 @@ export const INITIAL_NOTES: Note[] = [
     ownerId: 'system_curated',
   }
 ];
+
+export interface ClassCategory {
+  id: string;
+  grade: number;
+  label: string;
+  stage: 'Primary' | 'Middle School' | 'Secondary' | 'Senior Secondary';
+  description: string;
+  subjects: string[];
+  color: string;
+}
+
+export const INITIAL_CLASSES: ClassCategory[] = [
+  {
+    id: 'class-5',
+    grade: 5,
+    label: 'Class 5',
+    stage: 'Primary',
+    description: 'Foundational Environmental Studies, Elementary Maths & Languages',
+    subjects: ['Environmental Studies (EVS)', 'Mathematics', 'English', 'Hindi'],
+    color: 'emerald'
+  },
+  {
+    id: 'class-6',
+    grade: 6,
+    label: 'Class 6',
+    stage: 'Middle School',
+    description: 'Introduction to General Science, Algebra & Social Studies',
+    subjects: ['General Science', 'Mathematics', 'Social Science', 'English', 'Hindi'],
+    color: 'teal'
+  },
+  {
+    id: 'class-7',
+    grade: 7,
+    label: 'Class 7',
+    stage: 'Middle School',
+    description: 'Physics, Chemistry, Biology fundamentals & Indian History',
+    subjects: ['Science', 'Mathematics', 'Social Science', 'English', 'Hindi'],
+    color: 'cyan'
+  },
+  {
+    id: 'class-8',
+    grade: 8,
+    label: 'Class 8',
+    stage: 'Middle School',
+    description: 'Pre-board foundation in Algebra, Geometry & Applied Science',
+    subjects: ['Mathematics', 'Science', 'Social Science', 'English', 'Hindi'],
+    color: 'blue'
+  },
+  {
+    id: 'class-9',
+    grade: 9,
+    label: 'Class 9',
+    stage: 'Secondary',
+    description: 'CBSE / ICSE Board curriculum preparation & deep conceptual learning',
+    subjects: ['Science (Physics, Chem, Bio)', 'Mathematics', 'Social Science', 'English', 'Information Technology'],
+    color: 'indigo'
+  },
+  {
+    id: 'class-10',
+    grade: 10,
+    label: 'Class 10',
+    stage: 'Secondary',
+    description: '10th Board Exam revision sheets, formula maps & sample question banks',
+    subjects: ['Science', 'Mathematics', 'Social Science', 'English', 'Hindi'],
+    color: 'purple'
+  },
+  {
+    id: 'class-11',
+    grade: 11,
+    label: 'Class 11',
+    stage: 'Senior Secondary',
+    description: 'Advanced Stream Specialization (PCM, PCB, Commerce & Arts)',
+    subjects: ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'Accountancy', 'Economics'],
+    color: 'amber'
+  },
+  {
+    id: 'class-12',
+    grade: 12,
+    label: 'Class 12',
+    stage: 'Senior Secondary',
+    description: '12th Board Exams, JEE/NEET high-yield derivations & revision guides',
+    subjects: ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'Computer Science', 'Economics'],
+    color: 'rose'
+  }
+];
+

@@ -7,10 +7,10 @@ import { UploadNotes, UploadNotePayload } from './components/UploadNotes';
 import { LandingPage } from './components/LandingPage';
 import { SplashAuthScreen } from './components/SplashAuthScreen';
 import { Note } from './types';
-import { INITIAL_NOTES } from './data';
+import { INITIAL_NOTES, INITIAL_CLASSES } from './data';
 import { auth, db, loginWithGoogle, logout, OperationType, handleFirestoreError } from './lib/firebase';
 import { storeLocalFile, fileToDataUrl } from './lib/fileStorage';
-import { collection, onSnapshot, setDoc, doc, serverTimestamp, query, orderBy, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, setDoc, doc, serverTimestamp, query, orderBy, writeBatch, getDocs } from 'firebase/firestore';
 
 type TabType = 'landing' | 'browse' | 'upload';
 
@@ -29,10 +29,27 @@ export default function App() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [filterMyNotes, setFilterMyNotes] = useState<boolean>(false);
 
-  // Sync authentication state across the application
+  // Sync authentication state across the application & update Firestore 'users' collection
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      if (firebaseUser) {
+        setHasEntered(true);
+        try {
+          // Sync student profile to Firestore 'users' collection
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          await setDoc(userDocRef, {
+            uid: firebaseUser.uid,
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Student',
+            email: firebaseUser.email,
+            photoURL: firebaseUser.photoURL || '',
+            role: 'student',
+            lastLoginAt: serverTimestamp(),
+          }, { merge: true });
+        } catch (syncErr) {
+          console.warn("Could not sync user profile to Firestore:", syncErr);
+        }
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -82,9 +99,32 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Real-time Firestore sync with auto-seed for empty database
+  // Real-time Firestore sync with auto-seed for empty database & classes metadata
   useEffect(() => {
     let isSeeding = false;
+
+    // Ensure 'classes' collection is populated with curriculum metadata
+    const seedClassesIfEmpty = async () => {
+      try {
+        const classesSnap = await getDocs(collection(db, 'classes'));
+        if (classesSnap.empty) {
+          const batch = writeBatch(db);
+          INITIAL_CLASSES.forEach((cls) => {
+            const classDocRef = doc(db, 'classes', cls.id);
+            batch.set(classDocRef, {
+              ...cls,
+              updatedAt: serverTimestamp(),
+            });
+          });
+          await batch.commit();
+          console.log("Seeded 'classes' collection to Firestore!");
+        }
+      } catch (err) {
+        console.warn("Could not check/seed classes collection:", err);
+      }
+    };
+    seedClassesIfEmpty();
+
     const notesQuery = query(collection(db, 'notes'));
     const unsubscribeNotes = onSnapshot(notesQuery, async (snapshot) => {
       if (snapshot.empty && !isSeeding) {
@@ -228,7 +268,6 @@ export default function App() {
     return (
       <SplashAuthScreen
         onGoogleSignIn={loginWithGoogle}
-        onGuestSignIn={() => setHasEntered(true)}
         user={user}
         onEnterApp={() => setHasEntered(true)}
       />

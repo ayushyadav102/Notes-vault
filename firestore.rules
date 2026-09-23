@@ -1,13 +1,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // School Notes Archive
     match /notes/{noteId} {
-      // Academic archive: Anyone can read, list, and search school notes
+      // Anyone can read, search, and view school notes
       allow read: if true;
-      
-      // Allow uploading, editing, and deleting notes
-      allow create, update, delete: if true;
+      // Only authenticated students can upload, update, or delete notes
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // User Profiles & Student Bookmarks
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Curriculum & Classes Metadata
+    match /classes/{classId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Download Logs
+    match /downloads/{downloadId} {
+      allow read, create: if request.auth != null;
     }
   }
 }
+
 

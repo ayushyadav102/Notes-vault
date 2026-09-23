@@ -9,7 +9,6 @@ interface CachedUser {
 
 interface SplashAuthScreenProps {
   onGoogleSignIn: () => Promise<unknown>;
-  onGuestSignIn?: () => void;
   user?: CachedUser | null;
   onEnterApp: () => void;
   isLoading?: boolean;
@@ -17,7 +16,6 @@ interface SplashAuthScreenProps {
 
 export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
   onGoogleSignIn,
-  onGuestSignIn,
   user = null,
   onEnterApp,
   isLoading = false,
@@ -138,26 +136,6 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
               </span>
             </button>
 
-            {/* Continue as Student / Guest Button */}
-            {onGuestSignIn && !errorMsg && (
-              <>
-                <div className="flex items-center gap-2 my-1">
-                  <div className="flex-1 h-px bg-slate-200"></div>
-                  <span className="text-[11px] text-slate-400 font-medium">OR</span>
-                  <div className="flex-1 h-px bg-slate-200"></div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={onGuestSignIn}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-[#164373] bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-[0.99]"
-                >
-                  <span className="material-symbols-outlined text-[18px]">school</span>
-                  <span>Continue as Student (Direct Access)</span>
-                </button>
-              </>
-            )}
-
             {errorMsg && (
               <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 font-medium text-left leading-relaxed shadow-xs space-y-2.5">
                 <div className="flex items-center gap-1.5 font-bold text-amber-900">
@@ -184,7 +162,7 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
                   </div>
                 )}
 
-                <div className="pt-1 flex flex-col gap-2">
+                <div className="pt-1">
                   <a
                     href="https://console.firebase.google.com/project/notes-vault-b1141/authentication/settings"
                     target="_blank"
@@ -194,33 +172,12 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
                     <span>Open Firebase Settings</span>
                     <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                   </a>
-
-                  {onGuestSignIn && (
-                    <button
-                      type="button"
-                      onClick={onGuestSignIn}
-                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-600 hover:bg-[#164373] text-white font-bold text-xs shadow-xs cursor-pointer border-none transition-all active:scale-95"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">school</span>
-                      <span>Continue as Guest (Bina Sign In ke)</span>
-                    </button>
-                  )}
                 </div>
               </div>
             )}
 
-            {onGuestSignIn && !errorMsg && (
-              <button
-                type="button"
-                onClick={onGuestSignIn}
-                className="w-full text-xs text-slate-500 hover:text-slate-800 underline font-medium cursor-pointer bg-transparent border-none py-1.5 transition-colors"
-              >
-                Or Continue as Guest
-              </button>
-            )}
-
             <p className="text-xs text-slate-500 mt-2">
-              Sign in once with Google to upload, edit, and access all class notes.
+              Sign in with your Google account to access and upload verified school notes.
             </p>
           </div>
         )}

@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { Note } from '../types';
 import { getLocalFile, triggerUniversalDownload, storeLocalFile, fileToDataUrl, deleteLocalFile } from '../lib/fileStorage';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
-import { doc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, serverTimestamp, collection, addDoc, increment, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 
 interface DashboardProps {
   notes: Note[];
@@ -25,13 +25,57 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [downloadFeedback, setDownloadFeedback] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [showOnlyMine, setShowOnlyMine] = useState<boolean>(initialFilterMyNotes);
+  const [viewFilter, setViewFilter] = useState<'all' | 'mine' | 'bookmarks'>(initialFilterMyNotes ? 'mine' : 'all');
+
+  // Bookmarks synced with user profile and localStorage
+  const [bookmarks, setBookmarks] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('notesvault_bookmarks');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     if (initialFilterMyNotes) {
-      setShowOnlyMine(true);
+      setViewFilter('mine');
     }
   }, [initialFilterMyNotes]);
+
+  // Sync user bookmarks from Firestore 'users' collection
+  useEffect(() => {
+    if (!user) return;
+    const loadBookmarks = async () => {
+      try {
+        const userSnap = await getDoc(doc(db, 'users', user.uid));
+        if (userSnap.exists() && Array.isArray(userSnap.data()?.bookmarks)) {
+          setBookmarks(userSnap.data().bookmarks);
+          localStorage.setItem('notesvault_bookmarks', JSON.stringify(userSnap.data().bookmarks));
+        }
+      } catch (err) {
+        console.warn("Could not load bookmarks from Firestore:", err);
+      }
+    };
+    loadBookmarks();
+  }, [user]);
+
+  const toggleBookmark = async (noteId: string) => {
+    const isSaved = bookmarks.includes(noteId);
+    const updated = isSaved ? bookmarks.filter(id => id !== noteId) : [...bookmarks, noteId];
+    setBookmarks(updated);
+    localStorage.setItem('notesvault_bookmarks', JSON.stringify(updated));
+
+    if (user) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          bookmarks: isSaved ? arrayRemove(noteId) : arrayUnion(noteId)
+        });
+      } catch (err) {
+        console.warn("Could not update bookmark in Firestore:", err);
+      }
+    }
+  };
 
   // Edit Note State
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -178,9 +222,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const myNotesCount = user ? notes.filter(n => n.ownerId === user.uid).length : 0;
+  const bookmarkedNotesCount = notes.filter(n => bookmarks.includes(n.id)).length;
 
   const filteredNotes = notes.filter(n => {
-    if (showOnlyMine && user && n.ownerId !== user.uid) {
+    if (viewFilter === 'mine' && user && n.ownerId !== user.uid) {
+      return false;
+    }
+    if (viewFilter === 'bookmarks' && !bookmarks.includes(n.id)) {
       return false;
     }
     const matchesClass = activeClass === 'all' || `class-${n.grade}` === activeClass;
@@ -251,10 +299,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const recordDownload = async (note: Note, uniqueCode: string) => {
+    try {
+      await addDoc(collection(db, 'downloads'), {
+        noteId: note.id,
+        noteTitle: note.title,
+        schoolCode: uniqueCode,
+        grade: note.grade,
+        subject: note.subject,
+        userId: user ? user.uid : 'student',
+        userEmail: user ? user.email : '',
+        userName: user ? (user.displayName || user.email?.split('@')[0] || 'Student') : 'Student',
+        downloadedAt: serverTimestamp(),
+      });
+      await updateDoc(doc(db, 'notes', note.id), {
+        downloadsCount: increment(1)
+      });
+    } catch (err) {
+      console.warn("Could not log download to Firestore:", err);
+    }
+  };
+
   const handleDownload = async (note: Note) => {
     try {
       const uniqueCode = note.schoolCode || `NV-${note.id.slice(0, 6).toUpperCase()}`;
       const schoolName = note.schoolName || 'General School Archive';
+
+      // Log download to Firestore 'downloads' collection
+      recordDownload(note, uniqueCode);
 
       // 1. Check local device IndexedDB storage for the actual uploaded file
       const localStored = await getLocalFile(note.id);
@@ -473,26 +545,26 @@ Unique Reference ID: ${uniqueCode}
           )}
         </div>
 
-        {/* View Switcher: All Notes vs My Notes */}
-        {user && (
-          <div className="flex items-center justify-between gap-3 mb-space-md flex-wrap">
-            <div className="inline-flex p-1 bg-slate-100 border border-slate-200 rounded-xl">
+        {/* View Switcher: All Notes vs My Notes vs Bookmarks */}
+        <div className="flex items-center justify-between gap-3 mb-space-md flex-wrap">
+          <div className="inline-flex p-1 bg-slate-100 border border-slate-200 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setViewFilter('all')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none ${
+                viewFilter === 'all' 
+                  ? 'bg-white text-slate-900 shadow-xs' 
+                  : 'text-slate-600 hover:text-slate-900 bg-transparent'
+              }`}
+            >
+              All Notes ({notes.length})
+            </button>
+            {user && (
               <button
                 type="button"
-                onClick={() => setShowOnlyMine(false)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none ${
-                  !showOnlyMine 
-                    ? 'bg-white text-slate-900 shadow-xs' 
-                    : 'text-slate-600 hover:text-slate-900 bg-transparent'
-                }`}
-              >
-                All Notes ({notes.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowOnlyMine(true)}
+                onClick={() => setViewFilter('mine')}
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center gap-1.5 ${
-                  showOnlyMine 
+                  viewFilter === 'mine' 
                     ? 'bg-blue-600 text-white shadow-xs' 
                     : 'text-slate-600 hover:text-slate-900 bg-transparent'
                 }`}
@@ -500,9 +572,21 @@ Unique Reference ID: ${uniqueCode}
                 <span className="material-symbols-outlined text-[15px]">person</span>
                 <span>My Uploads ({myNotesCount})</span>
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setViewFilter('bookmarks')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center gap-1.5 ${
+                viewFilter === 'bookmarks' 
+                  ? 'bg-amber-600 text-white shadow-xs' 
+                  : 'text-slate-600 hover:text-slate-900 bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[15px]">bookmark</span>
+              <span>Saved Bookmarks ({bookmarkedNotesCount})</span>
+            </button>
           </div>
-        )}
+        </div>
 
         {/* Class Filter & Controls */}
         <div className="flex flex-col gap-space-sm mb-space-lg">
@@ -604,6 +688,25 @@ Unique Reference ID: ${uniqueCode}
                         <span>{note.schoolCode}</span>
                       </span>
                     )}
+
+                    {/* Bookmark / Save Action Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleBookmark(note.id);
+                      }}
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer border ${
+                        bookmarks.includes(note.id)
+                          ? 'bg-amber-50 text-amber-600 border-amber-300'
+                          : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 border-slate-200/60 bg-white'
+                      }`}
+                      title={bookmarks.includes(note.id) ? "Remove from bookmarks" : "Save to bookmarks"}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        {bookmarks.includes(note.id) ? 'bookmark' : 'bookmark_border'}
+                      </span>
+                    </button>
 
                     {/* Quick Edit Action Button */}
                     <button
@@ -761,7 +864,23 @@ Unique Reference ID: ${uniqueCode}
             
             {/* Action Buttons in Info Modal */}
             <div className="flex items-center justify-between pt-space-md mt-space-sm border-t border-outline-variant/20 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => toggleBookmark(previewNote.id)}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                    bookmarks.includes(previewNote.id)
+                      ? 'bg-amber-100 text-amber-800 border-amber-300'
+                      : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200'
+                  }`}
+                  title={bookmarks.includes(previewNote.id) ? "Remove Bookmark" : "Save Bookmark"}
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    {bookmarks.includes(previewNote.id) ? 'bookmark' : 'bookmark_border'}
+                  </span>
+                  <span>{bookmarks.includes(previewNote.id) ? 'Saved' : 'Save'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
