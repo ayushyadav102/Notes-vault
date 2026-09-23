@@ -14,7 +14,7 @@ service cloud.firestore {
     }
 
     function isValidNote(data) {
-      return data.keys().hasAll(['title', 'subject', 'grade', 'ownerId', 'createdAt', 'author', 'pages', 'sizeMB', 'rating', 'reviews', 'department', 'thumbnailUrl', 'isPdf'])
+      return data.keys().hasAll(['title', 'subject', 'grade', 'ownerId', 'author', 'pages', 'sizeMB', 'rating', 'reviews', 'department', 'thumbnailUrl', 'isPdf'])
           && data.title is string && data.title.size() <= 100
           && data.subject is string && data.subject.size() <= 50
           && data.department is string && data.department.size() <= 50
@@ -36,18 +36,21 @@ service cloud.firestore {
           && (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 200))
           && (!('fileType' in data) || (data.fileType is string && data.fileType.size() <= 100))
           && (!('fileData' in data) || (data.fileData is string && data.fileData.size() <= 900000))
-          && data.createdAt == request.time;
+          && (!('updatedAt' in data) || data.updatedAt is timestamp);
     }
 
     match /notes/{noteId} {
-      // Open academic archive: Anyone can read, list, and search notes without authentication
+      // Open academic archive: Anyone can read, list, and search notes
       allow read: if true;
       
-      // Open submission: Valid notes can be uploaded without authentication
-      allow create: if isValidId(noteId) && isValidNote(incoming());
+      // Open submission: Valid notes can be uploaded
+      allow create: if isValidId(noteId) && isValidNote(incoming()) && incoming().createdAt == request.time;
       
-      allow update: if false;
-      allow delete: if false;
+      // Allow updating note details and files directly in Firebase
+      allow update: if isValidId(noteId) && isValidNote(incoming());
+      
+      // Allow deleting notes directly from Firebase
+      allow delete: if isValidId(noteId);
     }
   }
 }

@@ -93,6 +93,21 @@ export async function getLocalFile(
   }
 }
 
+export async function deleteLocalFile(noteId: string): Promise<void> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const req = store.delete(noteId);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn('Failed to delete file from IndexedDB:', err);
+  }
+}
+
 // Convert File to Base64 Data URL
 export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

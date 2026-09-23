@@ -24,4 +24,5 @@ export interface Note {
   fileData?: string;
   ownerId: string;
   createdAt?: any;
+  updatedAt?: any;
 }
