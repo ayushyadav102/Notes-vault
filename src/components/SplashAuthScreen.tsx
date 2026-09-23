@@ -9,6 +9,7 @@ interface CachedUser {
 
 interface SplashAuthScreenProps {
   onGoogleSignIn: () => Promise<unknown>;
+  onGuestSignIn?: () => void;
   user?: CachedUser | null;
   onEnterApp?: () => void;
   isLoading?: boolean;
@@ -16,6 +17,7 @@ interface SplashAuthScreenProps {
 
 export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
   onGoogleSignIn,
+  onGuestSignIn,
   user = null,
   onEnterApp,
   isLoading = false,
@@ -177,13 +179,33 @@ export const SplashAuthScreen: React.FC<SplashAuthScreenProps> = ({
             </button>
 
             {errorMsg && (
-              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium text-left leading-relaxed">
-                <div className="flex items-center gap-1.5 font-bold text-amber-950 mb-1">
-                  <span className="material-symbols-outlined text-[16px] text-amber-700">info</span>
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 font-medium text-left leading-relaxed shadow-xs">
+                <div className="flex items-center gap-1.5 font-bold text-amber-900 mb-1">
+                  <span className="material-symbols-outlined text-[18px] text-amber-700">security_update_warning</span>
                   <span>Domain Authorization Required</span>
                 </div>
-                {errorMsg}
+                <p className="mb-2.5 text-slate-700">{errorMsg}</p>
+                {onGuestSignIn && (
+                  <button
+                    type="button"
+                    onClick={onGuestSignIn}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-600 hover:bg-[#164373] text-white font-bold text-xs shadow-xs cursor-pointer border-none transition-all active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">school</span>
+                    <span>Continue as Student Guest (Direct Access)</span>
+                  </button>
+                )}
               </div>
+            )}
+
+            {onGuestSignIn && !errorMsg && (
+              <button
+                type="button"
+                onClick={onGuestSignIn}
+                className="w-full text-xs text-slate-500 hover:text-slate-800 underline font-medium cursor-pointer bg-transparent border-none py-1"
+              >
+                Or Continue as Student Guest
+              </button>
             )}
 
             <p className="text-xs text-slate-500 mt-2">

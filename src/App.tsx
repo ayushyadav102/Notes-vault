@@ -182,6 +182,20 @@ export default function App() {
     setSplashFinished(true);
   };
 
+  const handleGuestLogin = () => {
+    const guestUser: CachedUser = {
+      uid: `guest_${Date.now()}`,
+      displayName: 'Student Guest',
+      email: 'student@notesvault.school',
+      photoURL: null,
+    };
+    setUser(guestUser);
+    localStorage.setItem('notesvault_is_authenticated', 'true');
+    localStorage.setItem('notesvault_cached_user', JSON.stringify(guestUser));
+    sessionStorage.setItem('notesvault_splash_seen', 'true');
+    setSplashFinished(true);
+  };
+
   const handleLogout = async () => {
     await logout();
     setUser(null);
@@ -212,6 +226,7 @@ export default function App() {
             setSplashFinished(true);
           }
         }}
+        onGuestSignIn={handleGuestLogin}
         user={null}
       />
     );
