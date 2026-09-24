@@ -126,7 +126,7 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
           <div className="mb-space-lg flex items-center justify-between">
             <button onClick={onCancel} className="inline-flex items-center gap-space-xs font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors group cursor-pointer bg-transparent border-none">
               <span className="material-symbols-outlined text-[18px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
-              <span>Back to Library</span>
+              <span>Back</span>
             </button>
           </div>
 

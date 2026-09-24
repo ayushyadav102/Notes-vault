@@ -19,10 +19,11 @@ export default function App() {
   const [student, setStudent] = useState<StudentUser | null>(() => getActiveStudent());
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const hash = window.location.hash.replace('#', '');
-    if (hash === 'browse' || hash === 'upload' || hash === 'landing') {
+    if (hash === 'browse' || hash === 'upload') {
       return hash as TabType;
     }
-    return 'browse';
+    // Always default to Step 2: Welcome to NotesVault
+    return 'landing';
   });
 
   const [notes, setNotes] = useState<Note[]>([]);
@@ -46,18 +47,14 @@ export default function App() {
     }
   };
 
-  // Back button handler: takes user back one step or falls back to previous view
+  // Back button handler: takes user back one step or falls back to Welcome page
   const handleBack = () => {
-    if (window.history.state?.tab) {
+    if (activeTab === 'upload' || activeTab === 'browse') {
+      navigateToTab('landing', true);
+    } else if (window.history.state?.tab) {
       window.history.back();
     } else {
-      if (activeTab === 'upload') {
-        navigateToTab('browse', false);
-      } else if (activeTab === 'browse') {
-        navigateToTab('landing', false);
-      } else {
-        window.history.back();
-      }
+      navigateToTab('landing', false);
     }
   };
 
@@ -281,6 +278,8 @@ export default function App() {
       <StudentAuthScreen
         onAuthSuccess={(newStudent) => {
           setStudent(newStudent);
+          setActiveTab('landing');
+          window.history.replaceState({ tab: 'landing' }, '', '#landing');
         }}
       />
     );
@@ -307,6 +306,7 @@ export default function App() {
           <LandingPage 
             onSelectRoute={(tab) => navigateToTab(tab)} 
             user={user}
+            student={student}
           />
         )}
         {activeTab === 'browse' && (

@@ -95,24 +95,26 @@ export const Navbar: React.FC<NavbarProps> = ({
               Home
             </button>
             <button
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'browse'
                   ? 'bg-blue-50 text-blue-700 font-bold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
               onClick={() => onTabChange('browse')}
             >
-              Browse Library
+              <span className="material-symbols-outlined text-[17px]">download</span>
+              <span>Download Notes</span>
             </button>
             <button
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'upload'
                   ? 'bg-blue-50 text-blue-700 font-bold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
               onClick={() => onTabChange('upload')}
             >
-              Upload Notes
+              <span className="material-symbols-outlined text-[17px]">cloud_upload</span>
+              <span>Upload Notes</span>
             </button>
           </nav>
         </div>
@@ -231,7 +233,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className="w-full px-4 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer border-none bg-transparent"
                     >
                       <span className="material-symbols-outlined text-[17px]">logout</span>
-                      <span>Log Out (ID Badlein)</span>
+                      <span>Log Out</span>
                     </button>
                   </div>
                 </div>
