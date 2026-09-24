@@ -10,7 +10,7 @@ import { Note, StudentUser } from './types';
 import { INITIAL_NOTES, INITIAL_CLASSES } from './data';
 import { auth, db, loginWithGoogle, logout, OperationType, handleFirestoreError } from './lib/firebase';
 import { getActiveStudent, logoutStudent } from './lib/studentAuth';
-import { storeLocalFile, fileToDataUrl } from './lib/fileStorage';
+import { storeLocalFile, fileToDataUrl, saveFileToFirestoreChunks } from './lib/fileStorage';
 import { collection, onSnapshot, setDoc, doc, serverTimestamp, query, orderBy, writeBatch, getDocs } from 'firebase/firestore';
 
 type TabType = 'landing' | 'browse' | 'upload';
@@ -206,12 +206,23 @@ export default function App() {
       const isPdf = uploadedFile ? (uploadedFile.name.toLowerCase().endsWith('.pdf') || uploadedFile.type === 'application/pdf') : true;
       const sizeMB = uploadedFile ? parseFloat((uploadedFile.size / (1024 * 1024)).toFixed(2)) : parseFloat((Math.random() * 5 + 1.2).toFixed(1));
 
+      let hasChunks = false;
+      let totalChunks = 0;
+
       if (uploadedFile) {
         // 1. Store full file in IndexedDB immediately for instant offline & client download
         await storeLocalFile(noteId, uploadedFile, uploadedFile.name, uploadedFile.type);
         
         // 2. Read as Data URL
         fileDataUrl = await fileToDataUrl(uploadedFile);
+
+        // 3. Save chunks to Firestore so any student across any device gets the real file
+        try {
+          totalChunks = await saveFileToFirestoreChunks(db, noteId, fileDataUrl);
+          hasChunks = totalChunks > 0;
+        } catch (chunkErr) {
+          console.warn("Could not save file chunks to Firestore:", chunkErr);
+        }
       }
 
       const newNote: Omit<Note, 'id'> = {
@@ -235,10 +246,12 @@ export default function App() {
         isPdf,
         ownerId: student ? student.id : (user ? user.uid : 'community_contributor'),
         createdAt: serverTimestamp(),
+        hasChunks,
+        totalChunks,
         ...(fileName ? { fileName } : {}),
         ...(fileType ? { fileType } : {}),
-        // If data URL is within Firestore's 800KB payload threshold, persist it to Firestore directly
-        ...(fileDataUrl && fileDataUrl.length < 800000 ? { fileData: fileDataUrl } : {}),
+        // If data URL is small, also store directly on note doc for rapid access
+        ...(fileDataUrl && fileDataUrl.length < 600000 ? { fileData: fileDataUrl } : {}),
       };
 
       await setDoc(doc(db, 'notes', noteId), newNote);

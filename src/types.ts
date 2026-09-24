@@ -32,6 +32,8 @@ export interface Note {
   fileName?: string;
   fileType?: string;
   fileData?: string;
+  hasChunks?: boolean;
+  totalChunks?: number;
   ownerId: string;
   createdAt?: any;
   updatedAt?: any;

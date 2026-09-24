@@ -74,7 +74,7 @@ export const loginWithGoogle = async () => {
 
     if (error?.code === 'auth/unauthorized-domain') {
       const currentHost = window.location.hostname;
-      const friendlyMsg = `Domain "${currentHost}" Firebase me authorized nahi hai. Kripya Firebase Console > Authentication > Settings > Authorized Domains me jaakar "${currentHost}" add karein.`;
+      const friendlyMsg = `Domain "${currentHost}" is not authorized in Firebase. Please add "${currentHost}" in Firebase Console > Authentication > Settings > Authorized Domains.`;
       throw new Error(friendlyMsg);
     }
     

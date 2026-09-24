@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
 import { Note, StudentUser } from '../types';
-import { getLocalFile, triggerUniversalDownload, storeLocalFile, fileToDataUrl, deleteLocalFile } from '../lib/fileStorage';
+import { getLocalFile, triggerUniversalDownload, storeLocalFile, fileToDataUrl, deleteLocalFile, saveFileToFirestoreChunks, getFileFromFirestoreChunks, deleteFileChunksFromFirestore, generateSubjectStudyPdf } from '../lib/fileStorage';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { doc, deleteDoc, updateDoc, serverTimestamp, collection, addDoc, increment, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 
@@ -113,7 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const handleStartEdit = (note: Note) => {
     if (!isMyNote(note)) {
       setDownloadFeedback({
-        message: 'Aap sirf apne upload kiye huye notes ko hi edit kar sakte hain!',
+        message: 'You can only edit notes uploaded by you.',
         type: 'error'
       });
       setTimeout(() => setDownloadFeedback(null), 3500);
@@ -132,7 +132,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const handleDeleteNote = async (note: Note) => {
     if (!isMyNote(note)) {
       setDownloadFeedback({
-        message: 'Aap kisi doosre student ke notes delete nahi kar sakte!',
+        message: 'You cannot delete notes uploaded by other students.',
         type: 'error'
       });
       setTimeout(() => setDownloadFeedback(null), 3500);
@@ -142,6 +142,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setIsDeleting(true);
     try {
       await deleteDoc(doc(db, 'notes', note.id));
+      await deleteFileChunksFromFirestore(db, note.id);
       await deleteLocalFile(note.id);
       setDeletingNote(null);
       if (previewNote?.id === note.id) {
@@ -156,7 +157,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       console.error("Delete note error:", error);
       handleFirestoreError(error, OperationType.DELETE, 'notes');
       setDownloadFeedback({
-        message: 'Note delete karne me samasya aayi. Kripya punah koshish karein.',
+        message: 'Failed to delete note. Please try again.',
         type: 'error'
       });
       setTimeout(() => setDownloadFeedback(null), 4000);
@@ -199,6 +200,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         const sizeMB = parseFloat((editNewFile.size / (1024 * 1024)).toFixed(2));
         const pages = Math.max(1, Math.round(sizeMB * 8) || editingNote.pages || 12);
 
+        // Save chunks to Firestore
+        let totalChunks = 0;
+        try {
+          totalChunks = await saveFileToFirestoreChunks(db, editingNote.id, dataUrl);
+        } catch (chunkErr) {
+          console.warn("Could not save file chunks to Firestore:", chunkErr);
+        }
+
         updatePayload = {
           ...updatePayload,
           fileName: editNewFile.name,
@@ -206,7 +215,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
           isPdf,
           sizeMB,
           pages,
-          ...(dataUrl.length < 800000 ? { fileData: dataUrl } : {}),
+          hasChunks: totalChunks > 0,
+          totalChunks,
+          ...(dataUrl.length < 600000 ? { fileData: dataUrl } : {}),
         };
       }
 
@@ -231,7 +242,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       console.error("Save edit error:", error);
       handleFirestoreError(error, OperationType.UPDATE, 'notes');
       setDownloadFeedback({
-        message: 'Note update karne me samasya aayi. Kripya punah koshish karein.',
+        message: 'Failed to update note. Please try again.',
         type: 'error'
       });
       setTimeout(() => setDownloadFeedback(null), 4000);
@@ -258,10 +269,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   // IMPORTANT: Edit & Delete options are ONLY shown when viewing inside "My Uploaded Notes" (viewFilter === 'mine')
-  // Bahar kisi bhi user ko delete ya edit ka option show nahi hona chahiye!
+  // External viewers cannot edit or delete other users' notes.
   const canManageNote = (note?: Note | null): boolean => {
     if (!note) return false;
-    if (viewFilter !== 'mine') return false; // Bahar strictly hidden!
+    if (viewFilter !== 'mine') return false; // Strictly hidden in general views
     return isMyNote(note);
   };
 
@@ -304,7 +315,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const query = searchQuery.trim();
     if (!query) {
       setDownloadFeedback({
-        message: 'Kripya note ki Unique ID (jaise BJS101) ya School Name search box me likhein!',
+        message: 'Please enter the Unique ID (e.g. BJS101) or School Name in the search box.',
         type: 'info'
       });
       setTimeout(() => setDownloadFeedback(null), 3500);
@@ -320,7 +331,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setTimeout(() => setDownloadFeedback(null), 4000);
     } else {
       setDownloadFeedback({
-        message: `ID "${query}" ke sath koi note nahi mila. Kripya Unique ID check karein.`,
+        message: `No note found matching ID "${query}". Please verify the Unique ID.`,
         type: 'error'
       });
       setTimeout(() => setDownloadFeedback(null), 4000);
@@ -392,7 +403,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         return;
       }
 
-      // 2. Check if note has real fileData synced from cloud (Firestore)
+      // 2. Check if note has real fileData synced directly from cloud (Firestore)
       if (note.fileData) {
         const ext = note.fileName ? note.fileName.split('.').pop() : (note.isPdf ? 'pdf' : 'pdf');
         const finalName = note.fileName || `${uniqueCode}_${note.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.${ext}`;
@@ -403,6 +414,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
           note.fileType || 'application/pdf'
         );
 
+        // Cache in local IndexedDB for future instant downloads
+        try {
+          await storeLocalFile(note.id, new Blob([note.fileData], { type: note.fileType || 'application/pdf' }), finalName, note.fileType || 'application/pdf');
+        } catch {}
+
         setDownloadFeedback({
           message: `Direct Download started for "${finalName}"!`,
           type: 'success'
@@ -411,42 +427,53 @@ export const Dashboard: React.FC<DashboardProps> = ({
         return;
       }
 
-      // 3. Fallback for sample / seed notes: Generate formatted academic text document
-      const content = `=====================================================
-NOTESVAULT - ACADEMIC STUDY NOTES ARCHIVE
-=====================================================
-Title:        ${note.title}
-School / Org: ${schoolName}
-Unique ID:    ${uniqueCode}
-Subject:      ${note.subject}
-Class/Grade:  Class ${note.grade}
-Author:       ${note.author.name}
-Verified:     Yes (School Archive Document)
-=====================================================
+      // 3. Check Firestore chunks for actual uploaded file
+      setDownloadFeedback({
+        message: `Retrieving uploaded file for "${note.title}"...`,
+        type: 'info'
+      });
 
-STUDY NOTES & SUMMARY:
------------------------------------------------------
-${note.title}
+      const cloudDataUrl = await getFileFromFirestoreChunks(db, note.id);
+      if (cloudDataUrl) {
+        const ext = note.fileName ? note.fileName.split('.').pop() : (note.isPdf ? 'pdf' : 'pdf');
+        const finalName = note.fileName || `${uniqueCode}_${note.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.${ext}`;
+        const fileType = note.fileType || 'application/pdf';
 
-These notes are officially archived from: ${schoolName}
-Unique Reference ID: ${uniqueCode}
+        triggerUniversalDownload(cloudDataUrl, finalName, fileType);
 
-[Study Material & Academic Content]
-=====================================================`;
+        // Cache into local IndexedDB for subsequent instant access
+        try {
+          const parts = cloudDataUrl.split(',');
+          const binary = atob(parts[1]);
+          const arr = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+          const cachedBlob = new Blob([arr], { type: fileType });
+          await storeLocalFile(note.id, cachedBlob, finalName, fileType);
+        } catch {}
 
+        setDownloadFeedback({
+          message: `Download complete for "${finalName}"!`,
+          type: 'success'
+        });
+        setTimeout(() => setDownloadFeedback(null), 4000);
+        return;
+      }
+
+      // 4. For academic archive / curated seed notes: Generate official subject-specific study PDF
+      const pdfBlob = generateSubjectStudyPdf(note);
       const safeTitle = note.title.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const filename = `${uniqueCode}_${safeTitle}.txt`;
-      triggerUniversalDownload(content, filename, 'text/plain;charset=utf-8');
+      const filename = `${uniqueCode}_${safeTitle}.pdf`;
+      triggerUniversalDownload(pdfBlob, filename, 'application/pdf');
 
       setDownloadFeedback({
-        message: `Download started for "${filename}"!`,
+        message: `Official Study PDF downloaded for "${filename}"!`,
         type: 'success'
       });
       setTimeout(() => setDownloadFeedback(null), 4000);
     } catch (err) {
       console.error("Download error:", err);
       setDownloadFeedback({
-        message: 'Download shuru karne me samasya aayi. Kripya punah koshish karein.',
+        message: 'Error starting download. Please try again.',
         type: 'error'
       });
       setTimeout(() => setDownloadFeedback(null), 4000);
@@ -482,7 +509,7 @@ Unique Reference ID: ${uniqueCode}
                   Search & Direct Download by Unique ID
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Notes ki Unique ID (jaise <span className="font-mono font-bold text-blue-700 bg-blue-100/90 px-1 py-0.5 rounded">BJS101</span>) ya School Name dalke direct search & download karein.
+                  Enter note Unique ID (e.g. <span className="font-mono font-bold text-blue-700 bg-blue-100/90 px-1 py-0.5 rounded">BJS101</span>) or School Name to search &amp; download instantly.
                 </p>
               </div>
             </div>
@@ -636,7 +663,7 @@ Unique Reference ID: ${uniqueCode}
             <div className="flex items-center gap-2.5">
               <span className="material-symbols-outlined text-blue-700 text-[22px]">verified_user</span>
               <span>
-                <strong>My Uploads Panel:</strong> Yahan sirf aapke upload kiye huye notes hain. Aap sirf yahan se apne notes ko <strong>Edit</strong> ya <strong>Delete</strong> kar sakte hain. Bahar kisi doosre user ko yeh option nahi dikhega.
+                <strong>My Uploads Panel:</strong> These are notes uploaded by your account. You can <strong>Edit</strong> or <strong>Delete</strong> your notes here. These options are hidden from other users.
               </span>
             </div>
             <button
@@ -645,7 +672,7 @@ Unique Reference ID: ${uniqueCode}
               className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg shrink-0 cursor-pointer border-none shadow-2xs text-xs flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-[15px]">add</span>
-              <span>Naya Upload</span>
+              <span>Upload New Note</span>
             </button>
           </div>
         )}
@@ -699,11 +726,11 @@ Unique Reference ID: ${uniqueCode}
             <div className="col-span-full flex flex-col items-center justify-center py-space-4xl text-center bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30">
               <span className="material-symbols-outlined text-[48px] text-outline-variant mb-space-md">folder_open</span>
               <h3 className="font-title-lg text-title-lg text-on-surface mb-space-xs">
-                {viewFilter === 'mine' ? 'Aapne abhi tak koi note upload nahi kiya' : 'No notes found'}
+                {viewFilter === 'mine' ? 'You have not uploaded any notes yet' : 'No notes found'}
               </h3>
               <p className="font-body-md text-body-md text-on-surface-variant max-w-sm mb-space-lg">
                 {viewFilter === 'mine'
-                  ? 'Aapke dwara upload kiye gaye notes yahan dikhenge. Abhi apna pehla note upload karein!'
+                  ? 'Notes you upload will appear here. Upload your first note now!'
                   : searchQuery 
                   ? `No study notes matched "${searchQuery}". Try searching by School Name, Unique ID (e.g. BJS101) or clearing filter.` 
                   : 'There are no notes available for this class yet.'}
@@ -1025,10 +1052,10 @@ Unique Reference ID: ${uniqueCode}
                 Delete Note from Firebase?
               </h3>
               <p className="text-xs sm:text-sm text-slate-600">
-                Kya aap sach me <span className="font-semibold text-slate-900">"{deletingNote.title}"</span> ({deletingNote.schoolCode || 'Note'}) aur iski PDF ko delete karna chahte hain?
+                Are you sure you want to permanently delete <span className="font-semibold text-slate-900">"{deletingNote.title}"</span> ({deletingNote.schoolCode || 'Note'}) and its PDF file?
               </p>
               <p className="text-xs text-rose-600 font-medium mt-1.5">
-                Yeh note Firebase database aur storage dono se permanently remove ho jayega.
+                This note will be permanently removed from Firebase database and storage.
               </p>
             </div>
 
@@ -1242,7 +1269,7 @@ Unique Reference ID: ${uniqueCode}
                   )}
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Agar aap nayi file select nahi karte hain, to purani PDF file Firebase me barkarar rahegi.
+                  If you do not select a new file, the current PDF file will be preserved in Firebase.
                 </p>
               </div>
 

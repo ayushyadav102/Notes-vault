@@ -96,13 +96,13 @@ const readUserDirectFromFirestoreRest = async (normId: string) => {
 export const registerStudent = async (payload: RegisterPayload): Promise<StudentUser> => {
   const normId = normalizeStudentId(payload.studentId);
   if (!normId) {
-    throw new Error('Kripya ek valid Student ID banayein (alphanumeric).');
+    throw new Error('Please enter a valid User ID (alphanumeric).');
   }
   if (!payload.name.trim()) {
-    throw new Error('Kripya apna poora naam enter karein.');
+    throw new Error('Please enter your full name.');
   }
   if (!payload.password || payload.password.length < 4) {
-    throw new Error('Password kam se kam 4 characters ka hona chahiye.');
+    throw new Error('Password must be at least 4 characters long.');
   }
 
   // 1. Check if ID exists in Firestore
@@ -110,16 +110,16 @@ export const registerStudent = async (payload: RegisterPayload): Promise<Student
   try {
     const existingSnap = await getDoc(userDocRef);
     if (existingSnap.exists()) {
-      throw new Error(`Student ID "${normId}" pehle se maujood hai. Kripya login karein ya doosra ID chunein.`);
+      throw new Error(`User ID "${normId}" already exists. Please log in or choose another ID.`);
     }
   } catch (err: any) {
-    if (err.message && err.message.includes('pehle se maujood hai')) {
+    if (err.message && err.message.includes('already exists')) {
       throw err;
     }
     // Check REST
     const restExisting = await readUserDirectFromFirestoreRest(normId);
     if (restExisting) {
-      throw new Error(`Student ID "${normId}" pehle se maujood hai. Kripya login karein.`);
+      throw new Error(`User ID "${normId}" already exists. Please log in.`);
     }
   }
 
@@ -171,10 +171,10 @@ export const registerStudent = async (payload: RegisterPayload): Promise<Student
 export const loginStudent = async (payload: LoginPayload): Promise<StudentUser> => {
   const normId = normalizeStudentId(payload.studentId);
   if (!normId) {
-    throw new Error('Kripya apna Student ID enter karein.');
+    throw new Error('Please enter your User ID.');
   }
   if (!payload.password) {
-    throw new Error('Kripya apna Password enter karein.');
+    throw new Error('Please enter your password.');
   }
 
   let userData: any = null;
@@ -208,11 +208,11 @@ export const loginStudent = async (payload: LoginPayload): Promise<StudentUser> 
   }
 
   if (!userData) {
-    throw new Error(`Student ID "${normId}" nahi mila. Kripya pehle apni Nayi ID banayein (Register).`);
+    throw new Error(`User ID "${normId}" not found. Please create an account first (Register).`);
   }
 
   if (userData.password !== payload.password) {
-    throw new Error('Galat Password! Kripya sahi password enter karein.');
+    throw new Error('Incorrect password! Please check and try again.');
   }
 
   const studentUser: StudentUser = {
