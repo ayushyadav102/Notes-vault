@@ -4,6 +4,14 @@ import { Note, StudentUser } from '../types';
 import { getLocalFile, triggerUniversalDownload, storeLocalFile, fileToDataUrl, deleteLocalFile, saveFileToFirestoreChunks, getFileFromFirestoreChunks, deleteFileChunksFromFirestore, generateSubjectStudyPdf } from '../lib/fileStorage';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { doc, deleteDoc, updateDoc, serverTimestamp, collection, addDoc, increment, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
+import { 
+  EducationLevel, 
+  EDUCATION_CATEGORIES, 
+  SCHOOL_CLASSES, 
+  COLLEGE_SEMESTERS, 
+  COACHING_STREAMS,
+  getAcademicLevelLabel
+} from '../lib/educationLevels';
 
 interface DashboardProps {
   notes: Note[];
@@ -22,7 +30,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   student,
   initialFilterMyNotes = false,
 }) => {
-  const [activeClass, setActiveClass] = useState<string>('all');
+  const [educationCategory, setEducationCategory] = useState<'all' | EducationLevel>('all');
+  const [activeLevel, setActiveLevel] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -85,7 +94,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [editSubject, setEditSubject] = useState<string>('');
   const [editSchoolName, setEditSchoolName] = useState<string>('');
   const [editSchoolCode, setEditSchoolCode] = useState<string>('');
-  const [editGrade, setEditGrade] = useState<number>(5);
+  const [editEducationLevel, setEditEducationLevel] = useState<EducationLevel>('school');
+  const [editSchoolClassInput, setEditSchoolClassInput] = useState<string>('10');
+  const [editCollegeSemInput, setEditCollegeSemInput] = useState<string>('1');
+  const [editCoachingStreamInput, setEditCoachingStreamInput] = useState<string>('JEE / NEET');
   const [editAuthorName, setEditAuthorName] = useState<string>('');
   const [editNewFile, setEditNewFile] = useState<File | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
@@ -94,8 +106,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Delete Note State
   const [deletingNote, setDeletingNote] = useState<Note | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
-
-  const classesList = ['all', 'class-5', 'class-6', 'class-7', 'class-8', 'class-9', 'class-10', 'class-11', 'class-12'];
 
   const generateAutoId = (name: string): string => {
     if (!name.trim()) return `NOTE${Math.floor(100 + Math.random() * 900)}`;
@@ -124,7 +134,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setEditSubject(note.subject);
     setEditSchoolName(note.schoolName || '');
     setEditSchoolCode(note.schoolCode || '');
-    setEditGrade(note.grade);
+    const edLevel = note.educationLevel || (note.semester ? 'college' : (note.coachingStream ? 'coaching' : 'school'));
+    setEditEducationLevel(edLevel);
+    
+    // Class / Sem / Coaching typeable defaults
+    const initialClass = note.academicLevelLabel 
+      ? note.academicLevelLabel.replace(/^Class\s*/i, '')
+      : String(note.grade || 10);
+    setEditSchoolClassInput(initialClass);
+
+    const initialSem = note.semester
+      ? String(note.semester)
+      : (note.academicLevelLabel ? note.academicLevelLabel.replace(/^Semester\s*/i, '').replace(/^Sem\s*/i, '') : String(note.grade && note.grade <= 8 ? note.grade : 1));
+    setEditCollegeSemInput(initialSem);
+
+    setEditCoachingStreamInput(note.coachingStream || note.academicLevelLabel || 'JEE / NEET');
     setEditAuthorName(note.author?.name || '');
     setEditNewFile(null);
   };
@@ -176,16 +200,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const newAuthorName = editAuthorName.trim() || editingNote.author?.name || 'Student Contributor';
       const initials = newAuthorName.substring(0, 2).toUpperCase() || 'ST';
 
+      let levelLabel = '';
+      let finalGrade = 10;
+      let finalSemester: number | null = null;
+      let finalCoachingStream: string | null = null;
+
+      if (editEducationLevel === 'college') {
+        const typedSem = editCollegeSemInput.trim();
+        const numSem = parseInt(typedSem.replace(/\D/g, ''), 10);
+        finalSemester = !isNaN(numSem) ? numSem : null;
+        finalGrade = finalSemester || 1;
+        levelLabel = typedSem ? (typedSem.toLowerCase().includes('sem') ? typedSem : `Semester ${typedSem}`) : 'College';
+      } else if (editEducationLevel === 'coaching') {
+        const typedStream = editCoachingStreamInput.trim() || 'Competitive Coaching';
+        finalCoachingStream = typedStream;
+        finalGrade = 0;
+        levelLabel = typedStream;
+      } else {
+        const typedClass = editSchoolClassInput.trim();
+        const numClass = parseInt(typedClass.replace(/\D/g, ''), 10);
+        finalGrade = !isNaN(numClass) ? numClass : 10;
+        levelLabel = typedClass ? (typedClass.toLowerCase().includes('class') ? typedClass : `Class ${typedClass}`) : 'School';
+      }
+
       let updatePayload: Record<string, any> = {
         title: editTitle.trim() || editingNote.title,
         subject: editSubject.trim() || editingNote.subject,
-        grade: editGrade,
-        schoolName: editSchoolName.trim() || editingNote.schoolName || 'General School Repository',
+        educationLevel: editEducationLevel,
+        grade: finalGrade,
+        semester: finalSemester,
+        coachingStream: finalCoachingStream,
+        academicLevelLabel: levelLabel,
+        schoolName: editSchoolName.trim() || editingNote.schoolName || (editEducationLevel === 'college' ? 'University / College Archive' : 'General Study Repository'),
         schoolCode: (editSchoolCode.trim() || editingNote.schoolCode || 'NOTE101').toUpperCase(),
         author: {
           ...editingNote.author,
           name: newAuthorName,
           initials: initials,
+          badge: `${levelLabel} Contributor`,
         },
         updatedAt: serverTimestamp(),
       };
@@ -221,7 +273,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
         };
       }
 
-      await updateDoc(noteRef, updatePayload);
+      // Clean any residual undefined values before updating Firestore
+      const cleanUpdatePayload = Object.fromEntries(
+        Object.entries(updatePayload).filter(([_, v]) => v !== undefined)
+      );
+
+      await updateDoc(noteRef, cleanUpdatePayload);
 
       setDownloadFeedback({
         message: `Note "${updatePayload.title}" updated successfully in Firebase!`,
@@ -286,8 +343,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (viewFilter === 'bookmarks' && !bookmarks.includes(n.id)) {
       return false;
     }
-    const matchesClass = activeClass === 'all' || `class-${n.grade}` === activeClass;
-    if (!matchesClass) return false;
+
+    const noteEduLevel = n.educationLevel || (n.semester ? 'college' : (n.coachingStream ? 'coaching' : 'school'));
+    if (educationCategory !== 'all' && noteEduLevel !== educationCategory) {
+      return false;
+    }
+
+    if (activeLevel !== 'all') {
+      if (activeLevel.startsWith('class-')) {
+        const targetGrade = parseInt(activeLevel.replace('class-', ''), 10);
+        if (n.grade !== targetGrade || noteEduLevel === 'college') return false;
+      } else if (activeLevel.startsWith('sem-')) {
+        const targetSem = parseInt(activeLevel.replace('sem-', ''), 10);
+        const noteSem = n.semester || (noteEduLevel === 'college' ? n.grade : undefined);
+        if (noteSem !== targetSem) return false;
+      } else {
+        const streamText = `${n.coachingStream || ''} ${n.academicLevelLabel || ''} ${n.department || ''}`.toLowerCase();
+        if (!streamText.includes(activeLevel.toLowerCase())) return false;
+      }
+    }
+
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     return (
@@ -296,6 +371,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       (n.schoolName && n.schoolName.toLowerCase().includes(q)) ||
       (n.schoolCode && n.schoolCode.toLowerCase().includes(q)) ||
       (n.id && n.id.toLowerCase().includes(q)) ||
+      (n.academicLevelLabel && n.academicLevelLabel.toLowerCase().includes(q)) ||
+      (n.coachingStream && n.coachingStream.toLowerCase().includes(q)) ||
+      (n.semester && `sem ${n.semester}`.includes(q)) ||
+      (n.semester && `semester ${n.semester}`.includes(q)) ||
       n.author.name.toLowerCase().includes(q)
     );
   });
@@ -583,7 +662,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </span>
                     )}
                     <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                      Class {topMatch.grade} • {topMatch.subject}
+                      {getAcademicLevelLabel(topMatch)} • {topMatch.subject}
                     </span>
                     <span className="text-xs text-blue-900 font-semibold truncate">
                       {topMatch.schoolName || 'School Archive'}
@@ -677,33 +756,197 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
 
-        {/* Class Filter & Controls */}
-        <div className="flex flex-col gap-space-sm mb-space-lg">
+        {/* Category & Academic Level Filter Controls */}
+        <div className="flex flex-col gap-3 mb-space-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-space-xs">
               <span className="material-symbols-outlined text-primary text-[20px]">layers</span>
-              <span className="font-title-md text-title-md text-on-surface">Filter by Class</span>
+              <span className="font-title-md text-title-md text-on-surface">Browse by Category &amp; Level</span>
             </div>
-            <span className="font-caption text-caption text-outline">Click to view class notes</span>
+            <span className="font-caption text-caption text-outline">Filter school classes, college semesters, or coaching</span>
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {classesList.map(cls => {
-              const isActive = activeClass === cls;
-              const label = cls === 'all' ? 'All Classes' : `Class ${cls.split('-')[1]}`;
+
+          {/* Primary Category Selector Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => { setEducationCategory('all'); setActiveLevel('all'); }}
+              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-all border ${
+                educationCategory === 'all'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200 shadow-2xs'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">apps</span>
+              <span>All Categories</span>
+            </button>
+
+            {EDUCATION_CATEGORIES.map(cat => {
+              const isActive = educationCategory === cat.id;
               return (
-                <button 
-                  key={cls}
-                  onClick={() => setActiveClass(cls)}
-                  className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer border ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-transparent shadow-md shadow-blue-500/25 scale-[1.02]' 
-                      : 'bg-white text-slate-700 hover:text-blue-700 hover:bg-blue-50/70 border-slate-200/90 shadow-2xs hover:border-blue-300'
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => { setEducationCategory(cat.id); setActiveLevel('all'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-all border ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white text-slate-700 hover:bg-blue-50/70 border-slate-200 shadow-2xs'
                   }`}
                 >
-                  <span>{label}</span>
+                  <span className="material-symbols-outlined text-[16px]">{cat.icon}</span>
+                  <span>{cat.shortLabel}</span>
                 </button>
               );
             })}
+          </div>
+
+          {/* Sub-level Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {educationCategory === 'all' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveLevel('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                    activeLevel === 'all'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                  }`}
+                >
+                  All Levels
+                </button>
+                {[9, 10, 11, 12].map(g => (
+                  <button
+                    key={`class-${g}`}
+                    type="button"
+                    onClick={() => setActiveLevel(`class-${g}`)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer whitespace-nowrap ${
+                      activeLevel === `class-${g}`
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                    }`}
+                  >
+                    Class {g}
+                  </button>
+                ))}
+                {[1, 2, 3, 4].map(s => (
+                  <button
+                    key={`sem-${s}`}
+                    type="button"
+                    onClick={() => setActiveLevel(`sem-${s}`)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer whitespace-nowrap ${
+                      activeLevel === `sem-${s}`
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-indigo-50/70 text-indigo-700 hover:bg-indigo-100 border-indigo-200'
+                    }`}
+                  >
+                    Sem {s}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setActiveLevel('JEE')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer whitespace-nowrap ${
+                    activeLevel === 'JEE'
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                      : 'bg-amber-50/80 text-amber-800 hover:bg-amber-100 border-amber-200'
+                  }`}
+                >
+                  JEE / NEET
+                </button>
+              </>
+            )}
+
+            {educationCategory === 'school' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveLevel('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                    activeLevel === 'all'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                  }`}
+                >
+                  All School Classes
+                </button>
+                {SCHOOL_CLASSES.map(g => (
+                  <button
+                    key={`class-${g}`}
+                    type="button"
+                    onClick={() => setActiveLevel(`class-${g}`)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer whitespace-nowrap ${
+                      activeLevel === `class-${g}`
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                    }`}
+                  >
+                    Class {g}
+                  </button>
+                ))}
+              </>
+            )}
+
+            {educationCategory === 'college' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveLevel('all')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                    activeLevel === 'all'
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                  }`}
+                >
+                  All Semesters (1-8)
+                </button>
+                {COLLEGE_SEMESTERS.map(s => (
+                  <button
+                    key={`sem-${s}`}
+                    type="button"
+                    onClick={() => setActiveLevel(`sem-${s}`)}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer whitespace-nowrap ${
+                      activeLevel === `sem-${s}`
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-white text-slate-700 hover:bg-indigo-50 border-slate-200'
+                    }`}
+                  >
+                    Semester {s}
+                  </button>
+                ))}
+              </>
+            )}
+
+            {educationCategory === 'coaching' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveLevel('all')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                    activeLevel === 'all'
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                  }`}
+                >
+                  All Coaching Exams
+                </button>
+                {COACHING_STREAMS.map(stream => (
+                  <button
+                    key={stream}
+                    type="button"
+                    onClick={() => setActiveLevel(stream)}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer whitespace-nowrap ${
+                      activeLevel === stream
+                        ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                        : 'bg-white text-slate-700 hover:bg-amber-50 border-slate-200'
+                    }`}
+                  >
+                    {stream}
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
 
@@ -760,7 +1003,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="flex items-center justify-between mb-space-sm gap-2">
                   <div className="flex items-center gap-space-xs flex-wrap">
                     <span className="bg-primary-fixed text-primary font-label-sm text-label-sm font-semibold px-space-sm py-0.5 rounded-full">
-                      Class {note.grade}
+                      {getAcademicLevelLabel(note)}
                     </span>
                     <span className="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-medium px-space-sm py-0.5 rounded-full">
                       {note.subject}
@@ -944,8 +1187,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <span className="font-semibold text-on-surface text-sm">{previewNote.subject}</span>
                 </div>
                 <div>
-                  <span className="text-outline block mb-0.5 font-medium">Class / Grade</span>
-                  <span className="font-semibold text-on-surface text-sm">Class {previewNote.grade}</span>
+                  <span className="text-outline block mb-0.5 font-medium">Academic Level</span>
+                  <span className="font-semibold text-on-surface text-sm">{getAcademicLevelLabel(previewNote)}</span>
                 </div>
                 <div>
                   <span className="text-outline block mb-0.5 font-medium">Author / Contributor</span>
@@ -1188,28 +1431,141 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               </div>
 
-              {/* Class Selection */}
-              <div className="flex flex-col gap-1">
+              {/* Academic Category Selection */}
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-700">
-                  Class: <span className="text-blue-700 font-extrabold">Class {editGrade}</span>
+                  Academic Category: <span className="text-blue-700 font-extrabold capitalize">{editEducationLevel}</span>
                 </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {[5, 6, 7, 8, 9, 10, 11, 12].map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => setEditGrade(g)}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg border cursor-pointer transition-all ${
-                        editGrade === g
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                          : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                      }`}
-                    >
-                      Class {g}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-3 gap-2">
+                  {EDUCATION_CATEGORIES.map(cat => {
+                    const isSelected = editEducationLevel === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setEditEducationLevel(cat.id)}
+                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[15px]">{cat.icon}</span>
+                        <span>{cat.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+
+              {/* Specific Level: School Class / College Semester / Coaching Stream */}
+              {editEducationLevel === 'school' && (
+                <div className="flex flex-col gap-1.5 p-3 bg-blue-50/50 rounded-xl border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px] text-blue-600">edit_note</span>
+                      <span>Type School Class / Standard:</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-blue-700">Class: {editSchoolClassInput || 'N/A'}</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={editSchoolClassInput}
+                    onChange={(e) => setEditSchoolClassInput(e.target.value)}
+                    placeholder="e.g. Class 10, 12th PCM, 9th Standard"
+                    className="w-full px-3 py-2 text-xs font-bold bg-white border border-blue-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                  />
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {SCHOOL_CLASSES.map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setEditSchoolClassInput(String(g))}
+                        className={`px-2 py-0.5 text-[11px] font-bold rounded border cursor-pointer transition-all ${
+                          editSchoolClassInput === String(g) || editSchoolClassInput === `Class ${g}`
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        Class {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {editEducationLevel === 'college' && (
+                <div className="flex flex-col gap-1.5 p-3 bg-indigo-50/50 rounded-xl border border-indigo-200">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px] text-indigo-600">edit_note</span>
+                      <span>Type College Semester & Branch:</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-indigo-700">Sem: {editCollegeSemInput || 'N/A'}</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={editCollegeSemInput}
+                    onChange={(e) => setEditCollegeSemInput(e.target.value)}
+                    placeholder="e.g. Sem 4 B.Tech CSE, 3rd Sem BCA"
+                    className="w-full px-3 py-2 text-xs font-bold bg-white border border-indigo-300 rounded-lg focus:border-indigo-600 focus:outline-none"
+                  />
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {COLLEGE_SEMESTERS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setEditCollegeSemInput(String(s))}
+                        className={`px-2 py-0.5 text-[11px] font-bold rounded border cursor-pointer transition-all ${
+                          editCollegeSemInput === String(s) || editCollegeSemInput === `Sem ${s}` || editCollegeSemInput === `Semester ${s}`
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        Sem {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {editEducationLevel === 'coaching' && (
+                <div className="flex flex-col gap-1.5 p-3 bg-amber-50/50 rounded-xl border border-amber-200">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px] text-amber-600">edit_note</span>
+                      <span>Type Exam / Coaching Subject:</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-amber-800 line-clamp-1 max-w-[160px]">{editCoachingStreamInput || 'N/A'}</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={editCoachingStreamInput}
+                    onChange={(e) => setEditCoachingStreamInput(e.target.value)}
+                    placeholder="e.g. JEE Advanced Physics, NEET Biology, UPSC"
+                    className="w-full px-3 py-2 text-xs font-bold bg-white border border-amber-300 rounded-lg focus:border-amber-600 focus:outline-none"
+                  />
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {COACHING_STREAMS.slice(0, 5).map(stream => (
+                      <button
+                        key={stream}
+                        type="button"
+                        onClick={() => setEditCoachingStreamInput(stream)}
+                        className={`px-2 py-0.5 text-[11px] font-bold rounded border cursor-pointer transition-all ${
+                          editCoachingStreamInput === stream
+                            ? 'bg-amber-600 text-white border-amber-600'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {stream}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Author / Contributor Name */}
               <div className="flex flex-col gap-1">

@@ -10,8 +10,6 @@ import {
 import { 
   initializeFirestore, 
   getFirestore, 
-  doc, 
-  getDocFromServer,
   persistentLocalCache,
   persistentMultipleTabManager 
 } from 'firebase/firestore';
@@ -23,16 +21,15 @@ const dbId = (!rawDbId || rawDbId === '(default)') ? undefined : rawDbId;
 
 let firestoreInstance;
 try {
-  firestoreInstance = initializeFirestore(
-    app,
-    {
-      experimentalAutoDetectLongPolling: true,
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager()
-      })
-    },
-    dbId
-  );
+  const firestoreSettings = {
+    experimentalForceLongPolling: true,
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  };
+  firestoreInstance = dbId 
+    ? initializeFirestore(app, firestoreSettings, dbId)
+    : initializeFirestore(app, firestoreSettings);
 } catch (e) {
   firestoreInstance = dbId ? getFirestore(app, dbId) : getFirestore(app);
 }
@@ -147,13 +144,3 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   }
 }
 
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Firestore client check.");
-    }
-  }
-}
-testConnection();

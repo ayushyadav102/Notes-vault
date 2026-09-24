@@ -222,12 +222,19 @@ export default function App() {
         }
       }
 
-      const newNote: Omit<Note, 'id'> = {
+      const levelBadge = payload.academicLevelLabel || 
+        (payload.educationLevel === 'college' 
+          ? `Semester ${payload.semester || payload.grade}` 
+          : (payload.educationLevel === 'coaching' ? payload.coachingStream : `Class ${payload.grade}`));
+
+      const newNote: Record<string, any> = {
         title: payload.title,
         subject: payload.subject,
-        department: payload.department || 'general',
+        department: payload.department || payload.educationLevel || 'general',
+        educationLevel: payload.educationLevel || 'school',
         grade: payload.grade,
-        schoolName: payload.schoolName || student?.schoolName || 'General School Repository',
+        academicLevelLabel: levelBadge || (payload.educationLevel === 'college' ? 'College' : (payload.educationLevel === 'coaching' ? 'Coaching' : `Class ${payload.grade}`)),
+        schoolName: payload.schoolName || student?.schoolName || (payload.educationLevel === 'college' ? 'University / College Archive' : 'General Study Repository'),
         schoolCode: payload.schoolCode || `NOTE${Math.floor(100 + Math.random() * 900)}`,
         pages: Math.max(1, Math.round(sizeMB * 8) || 12),
         sizeMB,
@@ -236,8 +243,12 @@ export default function App() {
         author: {
           name: author,
           initials: initials,
-          badge: student ? `Class ${student.grade} Student` : (user ? 'Verified Author' : 'Verified Student'),
-          badgeStyle: student ? 'bg-blue-100 text-blue-800' : (user ? 'bg-emerald-100 text-emerald-800' : 'bg-primary-container text-on-primary')
+          badge: levelBadge 
+            ? `${levelBadge} Contributor`
+            : (student ? (student.academicLevelLabel ? `${student.academicLevelLabel} Student` : `Student`) : (user ? 'Verified Author' : 'Verified Contributor')),
+          badgeStyle: payload.educationLevel === 'college' 
+            ? 'bg-indigo-100 text-indigo-800' 
+            : (payload.educationLevel === 'coaching' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800')
         },
         thumbnailUrl: 'https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=600',
         isPdf,
@@ -245,13 +256,20 @@ export default function App() {
         createdAt: serverTimestamp(),
         hasChunks,
         totalChunks,
+        ...(payload.semester !== undefined && payload.semester !== null ? { semester: payload.semester } : {}),
+        ...(payload.coachingStream ? { coachingStream: payload.coachingStream } : {}),
         ...(fileName ? { fileName } : {}),
         ...(fileType ? { fileType } : {}),
         // If data URL is small, also store directly on note doc for rapid access
         ...(fileDataUrl && fileDataUrl.length < 600000 ? { fileData: fileDataUrl } : {}),
       };
 
-      await setDoc(doc(db, 'notes', noteId), newNote);
+      // Clean any residual undefined values before saving to Firestore
+      const cleanNoteData = Object.fromEntries(
+        Object.entries(newNote).filter(([_, v]) => v !== undefined)
+      );
+
+      await setDoc(doc(db, 'notes', noteId), cleanNoteData);
       try {
         const stored = JSON.parse(localStorage.getItem('notesvault_my_uploaded_ids') || '[]');
         if (!stored.includes(noteId)) {

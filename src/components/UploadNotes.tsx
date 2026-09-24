@@ -1,12 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { Note, StudentUser } from '../types';
+import { Note, StudentUser, EducationLevel } from '../types';
+import { 
+  EDUCATION_CATEGORIES, 
+  SCHOOL_CLASSES, 
+  COLLEGE_SEMESTERS, 
+  COACHING_STREAMS 
+} from '../lib/educationLevels';
 
 export interface UploadNotePayload {
   title: string;
   subject: string;
   department: string;
+  educationLevel?: EducationLevel;
   grade: number;
+  semester?: number;
+  coachingStream?: string;
+  academicLevelLabel?: string;
   schoolName: string;
   schoolCode: string;
   authorName?: string;
@@ -33,17 +43,49 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
   });
   const [schoolName, setSchoolName] = useState(() => student?.schoolName || '');
   const [schoolCode, setSchoolCode] = useState('');
-  const [grade, setGrade] = useState<number>(() => student?.grade || 10);
+  const [educationLevel, setEducationLevel] = useState<EducationLevel>(() => {
+    return student?.educationLevel || 'school';
+  });
+  const [schoolClassInput, setSchoolClassInput] = useState<string>(() => String(student?.grade || 10));
+  const [collegeSemInput, setCollegeSemInput] = useState<string>(() => String(student?.semester || 1));
+  const [coachingStreamInput, setCoachingStreamInput] = useState<string>(() => student?.coachingStream || 'JEE / NEET');
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const schoolClassInputRef = useRef<HTMLInputElement>(null);
+  const collegeSemInputRef = useRef<HTMLInputElement>(null);
+  const coachingStreamInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSelectCategory = (catId: EducationLevel) => {
+    setEducationLevel(catId);
+    setTimeout(() => {
+      if (catId === 'school' && schoolClassInputRef.current) {
+        schoolClassInputRef.current.focus();
+        schoolClassInputRef.current.select();
+      } else if (catId === 'college' && collegeSemInputRef.current) {
+        collegeSemInputRef.current.focus();
+        collegeSemInputRef.current.select();
+      } else if (catId === 'coaching' && coachingStreamInputRef.current) {
+        coachingStreamInputRef.current.focus();
+        coachingStreamInputRef.current.select();
+      }
+    }, 50);
+  };
 
   // Auto-sync student details when student or user state is ready
   useEffect(() => {
     if (student) {
       if (!authorName) setAuthorName(student.name);
       if (!schoolName && student.schoolName) setSchoolName(student.schoolName);
-      if (student.grade) setGrade(student.grade);
+      if (student.educationLevel) setEducationLevel(student.educationLevel);
+      if (student.grade) setSchoolClassInput(String(student.grade));
+      if (student.semester) setCollegeSemInput(String(student.semester));
+      if (student.coachingStream) setCoachingStreamInput(student.coachingStream);
+      if (student.academicLevelLabel) {
+        if (student.educationLevel === 'school') setSchoolClassInput(student.academicLevelLabel.replace(/^Class\s*/i, ''));
+        if (student.educationLevel === 'college') setCollegeSemInput(student.academicLevelLabel.replace(/^Semester\s*/i, '').replace(/^Sem\s*/i, ''));
+        if (student.educationLevel === 'coaching') setCoachingStreamInput(student.academicLevelLabel);
+      }
     } else if (user && !authorName) {
       setAuthorName(user.displayName || user.email?.split('@')[0] || '');
     }
@@ -94,19 +136,49 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !subject || !grade || !file) return;
+    if (!title || !subject || !file) return;
     
     setIsUploading(true);
     try {
       // Fallback schoolCode if left empty
       const finalCode = schoolCode.trim() || (schoolName ? generateAutoId(schoolName) : 'NOTE101');
-      const finalSchoolName = schoolName.trim() || 'General School Repository';
+      const defaultInstName = educationLevel === 'college' 
+        ? 'University / College Archive' 
+        : (educationLevel === 'coaching' ? 'Competitive Exam Archive' : 'School Study Repository');
+      const finalSchoolName = schoolName.trim() || defaultInstName;
+
+      let academicLevelLabel = '';
+      let finalGrade = 10;
+      let finalSemester: number | undefined = undefined;
+      let finalCoachingStream: string | undefined = undefined;
+
+      if (educationLevel === 'college') {
+        const typedSem = collegeSemInput.trim();
+        const numSem = parseInt(typedSem.replace(/\D/g, ''), 10);
+        finalSemester = !isNaN(numSem) ? numSem : undefined;
+        finalGrade = finalSemester || 1;
+        academicLevelLabel = typedSem ? (typedSem.toLowerCase().includes('sem') ? typedSem : `Semester ${typedSem}`) : 'College';
+      } else if (educationLevel === 'coaching') {
+        const typedStream = coachingStreamInput.trim() || 'Competitive Coaching';
+        finalCoachingStream = typedStream;
+        finalGrade = 0;
+        academicLevelLabel = typedStream;
+      } else {
+        const typedClass = schoolClassInput.trim();
+        const numClass = parseInt(typedClass.replace(/\D/g, ''), 10);
+        finalGrade = !isNaN(numClass) ? numClass : 10;
+        academicLevelLabel = typedClass ? (typedClass.toLowerCase().includes('class') ? typedClass : `Class ${typedClass}`) : 'School';
+      }
 
       await onPublish({
         title,
         subject,
-        department: 'general',
-        grade,
+        department: educationLevel,
+        educationLevel,
+        grade: finalGrade,
+        semester: finalSemester,
+        coachingStream: finalCoachingStream,
+        academicLevelLabel,
         schoolName: finalSchoolName,
         schoolCode: finalCode.toUpperCase(),
         authorName: authorName.trim() || 'Student Contributor',
@@ -190,10 +262,12 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
                 />
               </div>
 
-              {/* School / College Name */}
+              {/* School / College / Coaching Academy Name */}
               <div className="flex flex-col gap-space-xs">
                 <label className="font-label-md text-label-md text-on-surface" htmlFor="school-name">
-                  School / College Name <span className="text-error">*</span>
+                  {educationLevel === 'college' 
+                    ? 'College / University Name' 
+                    : (educationLevel === 'coaching' ? 'Coaching Institute / Academy Name' : 'School / Board Name')} <span className="text-error">*</span>
                 </label>
                 <input 
                   id="school-name" 
@@ -202,7 +276,13 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
                   value={schoolName}
                   onChange={(e) => handleSchoolNameChange(e.target.value)}
                   className="w-full bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline/70 px-space-md py-space-sm rounded-lg focus:bg-surface-container-lowest focus:outline-none border border-outline-variant/30 focus:border-primary shadow-sm transition-all" 
-                  placeholder="e.g., BJS School, St. Xavier's High School" 
+                  placeholder={
+                    educationLevel === 'college'
+                      ? 'e.g., MIT, IIT Bombay, Delhi University, Anna University, VIT'
+                      : (educationLevel === 'coaching'
+                        ? 'e.g., Allen Career Institute, Drishti IAS, Resonance, Physics Wallah'
+                        : "e.g., DPS R.K. Puram, St. Xavier's High School, Kendriya Vidyalaya")
+                  } 
                   type="text" 
                 />
               </div>
@@ -211,7 +291,7 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
               <div className="flex flex-col gap-space-xs">
                 <div className="flex items-center justify-between">
                   <label className="font-label-md text-label-md text-on-surface" htmlFor="school-code">
-                    Unique School / Note ID <span className="text-error">*</span>
+                    {educationLevel === 'college' ? 'Course / Subject Code' : (educationLevel === 'coaching' ? 'Batch / Exam Code' : 'School / Note Code')} <span className="text-error">*</span>
                   </label>
                   <button
                     type="button"
@@ -230,7 +310,7 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
                   value={schoolCode}
                   onChange={(e) => setSchoolCode(e.target.value.toUpperCase().replace(/\s+/g, ''))}
                   className="w-full bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-outline/70 px-space-md py-space-sm rounded-lg focus:bg-surface-container-lowest focus:outline-none border border-outline-variant/30 focus:border-primary shadow-sm transition-all uppercase" 
-                  placeholder="e.g., BJS101, STX102" 
+                  placeholder={educationLevel === 'college' ? 'e.g., CS301, ME402' : 'e.g., BJS101, STX102'} 
                   type="text" 
                 />
               </div>
@@ -251,27 +331,168 @@ export const UploadNotes: React.FC<UploadNotesProps> = ({
                 />
               </div>
 
+              {/* Education Category Selection (School, College Semester 1-8, Coaching) */}
               <div className="flex flex-col gap-space-xs">
-                <label className="font-label-md text-label-md text-on-surface">
-                  Class <span className="text-error">*</span>
-                </label>
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                  {gradesList.map(g => (
-                    <button 
-                      key={g}
-                      type="button"
-                      onClick={() => setGrade(g)}
-                      className={`py-2 px-1.5 rounded-xl text-center text-xs font-bold transition-all cursor-pointer border ${
-                        grade === g 
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black shadow-md shadow-blue-500/25 border-transparent scale-105' 
-                          : 'bg-white text-slate-700 hover:text-blue-700 hover:bg-blue-50/70 border-slate-200/90 shadow-2xs'
-                      }`}
-                    >
-                      Class {g}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <label className="font-label-md text-label-md text-on-surface font-bold">
+                    Target Education Category <span className="text-error">*</span>
+                  </label>
+                  <span className="text-xs text-slate-500">School, College or Coaching</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {EDUCATION_CATEGORIES.map(cat => {
+                    const isSelected = educationLevel === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => handleSelectCategory(cat.id)}
+                        className={`p-3 rounded-xl text-left transition-all cursor-pointer border flex flex-col gap-1 ${
+                          isSelected
+                            ? 'bg-blue-50/90 border-blue-600 ring-2 ring-blue-500/20 shadow-xs'
+                            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`material-symbols-outlined text-[20px] ${isSelected ? 'text-blue-600' : 'text-slate-500'}`}>
+                            {cat.icon}
+                          </span>
+                          <span className={`text-xs font-black ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
+                            {cat.shortLabel}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-500 line-clamp-1">
+                          {cat.description}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+
+              {/* Specific Level / Semester / Stream Typeable Input based on Category */}
+              {educationLevel === 'school' && (
+                <div className="flex flex-col gap-space-xs p-4 bg-blue-50/40 rounded-xl border border-blue-200/80">
+                  <div className="flex items-center justify-between">
+                    <label className="font-label-md text-label-md text-on-surface font-bold flex items-center gap-1.5" htmlFor="school-class-input">
+                      <span className="material-symbols-outlined text-[18px] text-blue-600">edit_note</span>
+                      <span>Type School Class / Standard <span className="text-error">*</span></span>
+                    </label>
+                    <span className="text-[11px] font-bold text-blue-700 bg-blue-100/90 px-2.5 py-0.5 rounded-full border border-blue-300">
+                      Class: {schoolClassInput || 'Not specified'}
+                    </span>
+                  </div>
+                  <input
+                    ref={schoolClassInputRef}
+                    id="school-class-input"
+                    type="text"
+                    required
+                    value={schoolClassInput}
+                    onChange={(e) => setSchoolClassInput(e.target.value)}
+                    placeholder="Type your class (e.g., Class 10, 12th PCM, 9th Standard, Class 11 Biology)"
+                    className="w-full bg-white text-on-surface font-body-md text-body-md px-3.5 py-2.5 rounded-lg border-2 border-blue-300 focus:border-blue-600 focus:outline-none shadow-xs transition-all font-semibold"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[11px] text-slate-500 font-medium">Quick suggestions:</span>
+                    {SCHOOL_CLASSES.map(g => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setSchoolClassInput(String(g))}
+                        className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all cursor-pointer ${
+                          schoolClassInput === String(g) || schoolClassInput === `Class ${g}`
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-blue-50'
+                        }`}
+                      >
+                        Class {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {educationLevel === 'college' && (
+                <div className="flex flex-col gap-space-xs p-4 bg-indigo-50/40 rounded-xl border border-indigo-200/80">
+                  <div className="flex items-center justify-between">
+                    <label className="font-label-md text-label-md text-on-surface font-bold flex items-center gap-1.5" htmlFor="college-sem-input">
+                      <span className="material-symbols-outlined text-[18px] text-indigo-600">edit_note</span>
+                      <span>Type College Semester & Degree Course <span className="text-error">*</span></span>
+                    </label>
+                    <span className="text-[11px] font-bold text-indigo-700 bg-indigo-100/90 px-2.5 py-0.5 rounded-full border border-indigo-300">
+                      Semester: {collegeSemInput || 'Not specified'}
+                    </span>
+                  </div>
+                  <input
+                    ref={collegeSemInputRef}
+                    id="college-sem-input"
+                    type="text"
+                    required
+                    value={collegeSemInput}
+                    onChange={(e) => setCollegeSemInput(e.target.value)}
+                    placeholder="Type your semester / branch (e.g., Sem 4 B.Tech CSE, 3rd Sem BCA, 5th Sem B.Com)"
+                    className="w-full bg-white text-on-surface font-body-md text-body-md px-3.5 py-2.5 rounded-lg border-2 border-indigo-300 focus:border-indigo-600 focus:outline-none shadow-xs transition-all font-semibold"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[11px] text-slate-500 font-medium">Quick suggestions:</span>
+                    {COLLEGE_SEMESTERS.map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setCollegeSemInput(String(s))}
+                        className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all cursor-pointer ${
+                          collegeSemInput === String(s) || collegeSemInput === `Sem ${s}` || collegeSemInput === `Semester ${s}`
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-indigo-50'
+                        }`}
+                      >
+                        Sem {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {educationLevel === 'coaching' && (
+                <div className="flex flex-col gap-space-xs p-4 bg-amber-50/40 rounded-xl border border-amber-200/80">
+                  <div className="flex items-center justify-between">
+                    <label className="font-label-md text-label-md text-on-surface font-bold flex items-center gap-1.5" htmlFor="coaching-stream-input">
+                      <span className="material-symbols-outlined text-[18px] text-amber-600">edit_note</span>
+                      <span>Type Coaching Exam / Target Subject <span className="text-error">*</span></span>
+                    </label>
+                    <span className="text-[11px] font-bold text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-full border border-amber-300 line-clamp-1 max-w-[200px]">
+                      {coachingStreamInput || 'Not specified'}
+                    </span>
+                  </div>
+                  <input
+                    ref={coachingStreamInputRef}
+                    id="coaching-stream-input"
+                    type="text"
+                    required
+                    value={coachingStreamInput}
+                    onChange={(e) => setCoachingStreamInput(e.target.value)}
+                    placeholder="Type exam or coaching subject (e.g., JEE Advanced Physics, NEET Biology, UPSC Prelims, SSC CGL Maths)"
+                    className="w-full bg-white text-on-surface font-body-md text-body-md px-3.5 py-2.5 rounded-lg border-2 border-amber-300 focus:border-amber-600 focus:outline-none shadow-xs transition-all font-semibold"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[11px] text-slate-500 font-medium">Quick suggestions:</span>
+                    {COACHING_STREAMS.slice(0, 5).map(stream => (
+                      <button
+                        key={stream}
+                        type="button"
+                        onClick={() => setCoachingStreamInput(stream)}
+                        className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all cursor-pointer ${
+                          coachingStreamInput === stream
+                            ? 'bg-amber-600 text-white border-amber-600'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50'
+                        }`}
+                      >
+                        {stream}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col gap-space-xs">
                 <label className="font-label-md text-label-md text-on-surface">

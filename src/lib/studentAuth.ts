@@ -6,7 +6,11 @@ import firebaseConfig from '../../firebase-applet-config.json';
 export interface RegisterPayload {
   name: string;
   studentId: string;
+  educationLevel?: 'school' | 'college' | 'coaching';
   grade?: number;
+  semester?: number;
+  coachingStream?: string;
+  academicLevelLabel?: string;
   schoolName?: string;
   password: string;
 }
@@ -85,6 +89,18 @@ const writeUserDirectToFirestoreRest = async (userData: any, normId: string) => 
     if (userData.grade !== undefined && userData.grade !== null) {
       fields.grade = { integerValue: String(userData.grade) };
     }
+    if (userData.semester !== undefined && userData.semester !== null) {
+      fields.semester = { integerValue: String(userData.semester) };
+    }
+    if (userData.educationLevel) {
+      fields.educationLevel = { stringValue: userData.educationLevel };
+    }
+    if (userData.coachingStream) {
+      fields.coachingStream = { stringValue: userData.coachingStream };
+    }
+    if (userData.academicLevelLabel) {
+      fields.academicLevelLabel = { stringValue: userData.academicLevelLabel };
+    }
     if (userData.schoolName) {
       fields.schoolName = { stringValue: userData.schoolName };
     }
@@ -112,7 +128,11 @@ const readUserDirectFromFirestoreRest = async (normId: string) => {
       id: json.fields.id?.stringValue || normId,
       studentId: json.fields.studentId?.stringValue || normId,
       name: json.fields.name?.stringValue || normId,
+      educationLevel: json.fields.educationLevel?.stringValue || undefined,
       grade: json.fields.grade?.integerValue ? Number(json.fields.grade.integerValue) : undefined,
+      semester: json.fields.semester?.integerValue ? Number(json.fields.semester.integerValue) : undefined,
+      coachingStream: json.fields.coachingStream?.stringValue || undefined,
+      academicLevelLabel: json.fields.academicLevelLabel?.stringValue || undefined,
       schoolName: json.fields.schoolName?.stringValue || '',
       password: json.fields.password?.stringValue || '',
       role: json.fields.role?.stringValue || 'student',
@@ -163,7 +183,11 @@ export const registerStudent = async (payload: RegisterPayload): Promise<Student
     studentId: normId,
     name: payload.name.trim(),
     role: 'student',
+    ...(payload.educationLevel ? { educationLevel: payload.educationLevel } : {}),
     ...(payload.grade ? { grade: Number(payload.grade) } : {}),
+    ...(payload.semester ? { semester: Number(payload.semester) } : {}),
+    ...(payload.coachingStream ? { coachingStream: payload.coachingStream } : {}),
+    ...(payload.academicLevelLabel ? { academicLevelLabel: payload.academicLevelLabel } : {}),
     ...(payload.schoolName?.trim() ? { schoolName: payload.schoolName.trim() } : {}),
   };
 
@@ -254,7 +278,11 @@ export const loginStudent = async (payload: LoginPayload): Promise<StudentUser> 
     id: normId,
     studentId: normId,
     name: userData.name || normId,
+    ...(userData.educationLevel ? { educationLevel: userData.educationLevel } : {}),
     ...(userData.grade ? { grade: Number(userData.grade) } : {}),
+    ...(userData.semester ? { semester: Number(userData.semester) } : {}),
+    ...(userData.coachingStream ? { coachingStream: userData.coachingStream } : {}),
+    ...(userData.academicLevelLabel ? { academicLevelLabel: userData.academicLevelLabel } : {}),
     ...(userData.schoolName ? { schoolName: userData.schoolName } : {}),
     role: userData.role || 'student',
   };

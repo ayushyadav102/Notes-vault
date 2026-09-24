@@ -2,7 +2,7 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "User profile in the NotesVault archive without required school/grade fields.",
+      "description": "User profile in the NotesVault archive with education category support (school, college, coaching).",
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
@@ -10,7 +10,11 @@
         "name": { "type": "string", "maxLength": 100 },
         "password": { "type": "string", "maxLength": 128 },
         "role": { "type": "string", "maxLength": 50 },
-        "grade": { "type": "number", "minimum": 5, "maximum": 12 },
+        "educationLevel": { "type": "string", "enum": ["school", "college", "coaching"] },
+        "grade": { "type": "number" },
+        "semester": { "type": "number" },
+        "coachingStream": { "type": "string", "maxLength": 100 },
+        "academicLevelLabel": { "type": "string", "maxLength": 100 },
         "schoolName": { "type": "string", "maxLength": 150 },
         "createdAt": { "type": "timestamp" },
         "lastLoginAt": { "type": "timestamp" }
@@ -19,34 +23,41 @@
     },
     "Note": {
       "title": "Note",
-      "description": "A study note uploaded by a student or community member.",
+      "description": "A study note uploaded by a student or community member categorized under school, college, or coaching.",
       "type": "object",
       "properties": {
         "title": { "type": "string", "maxLength": 100 },
-        "subject": { "type": "string", "maxLength": 50 },
+        "subject": { "type": "string", "maxLength": 100 },
         "department": { "type": "string", "maxLength": 50 },
-        "schoolName": { "type": "string", "maxLength": 100 },
+        "educationLevel": { "type": "string", "enum": ["school", "college", "coaching"] },
+        "schoolName": { "type": "string", "maxLength": 150 },
         "schoolCode": { "type": "string", "maxLength": 50 },
-        "grade": { "type": "number", "minimum": 5, "maximum": 12 },
+        "grade": { "type": "number" },
+        "semester": { "type": "number" },
+        "coachingStream": { "type": "string", "maxLength": 100 },
+        "academicLevelLabel": { "type": "string", "maxLength": 100 },
         "pages": { "type": "number", "minimum": 1 },
         "sizeMB": { "type": "number", "minimum": 0 },
         "rating": { "type": "number", "minimum": 0, "maximum": 5 },
         "reviews": { "type": "number", "minimum": 0 },
+        "downloadsCount": { "type": "number", "minimum": 0 },
         "author": {
           "type": "object",
           "properties": {
             "name": { "type": "string", "maxLength": 50 },
-            "initials": { "type": "string", "maxLength": 3 },
-            "badge": { "type": "string", "maxLength": 50 },
+            "initials": { "type": "string", "maxLength": 5 },
+            "badge": { "type": "string", "maxLength": 100 },
             "badgeStyle": { "type": "string" }
           },
           "required": ["name", "initials", "badge"]
         },
         "thumbnailUrl": { "type": "string", "maxLength": 500 },
         "isPdf": { "type": "boolean" },
-        "fileName": { "type": "string", "maxLength": 200 },
+        "fileName": { "type": "string", "maxLength": 250 },
         "fileType": { "type": "string", "maxLength": 100 },
         "fileData": { "type": "string", "maxLength": 900000 },
+        "hasChunks": { "type": "boolean" },
+        "totalChunks": { "type": "number" },
         "ownerId": { "type": "string", "maxLength": 128 },
         "createdAt": { "type": "timestamp" },
         "updatedAt": { "type": "timestamp" }

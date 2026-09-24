@@ -1,8 +1,14 @@
+export type EducationLevel = 'school' | 'college' | 'coaching';
+
 export interface StudentUser {
   id: string;
   studentId: string;
   name: string;
+  educationLevel?: EducationLevel;
   grade?: number;
+  semester?: number;
+  coachingStream?: string;
+  academicLevelLabel?: string;
   schoolName?: string;
   role?: string;
   createdAt?: any;
@@ -13,7 +19,11 @@ export interface Note {
   title: string;
   subject: string;
   department: string;
+  educationLevel?: EducationLevel;
   grade: number;
+  semester?: number;
+  coachingStream?: string;
+  academicLevelLabel?: string;
   schoolName?: string;
   schoolCode?: string;
   tags?: string[];

@@ -1,6 +1,7 @@
 import { collection, doc, setDoc, getDocs, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { jsPDF } from 'jspdf';
 import { Note } from '../types';
+import { getAcademicLevelLabel } from './educationLevels';
 
 // IndexedDB helper for robust cross-session client-side storage of full notes files
 const DB_NAME = 'NotesVaultDB';
@@ -335,7 +336,7 @@ function getEducationalSections(note: Note): { heading: string; body: string }[]
   return [
     {
       heading: '1. Chapter Objectives & Topic Outline',
-      body: `Complete study guide and structured revision notes for "${title}". This document covers essential syllabus requirements, foundational definitions, analytical explanations, and core academic competencies required for Class ${note.grade} examinations.`
+      body: `Complete study guide and structured revision notes for "${title}". This document covers essential syllabus requirements, foundational definitions, analytical explanations, and core academic competencies required for ${getAcademicLevelLabel(note)} examinations.`
     },
     {
       heading: '2. Key Concepts & Structured Summary',
@@ -416,7 +417,7 @@ export function generateSubjectStudyPdf(note: Note): Blob {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
-  doc.text(`Subject: ${note.subject}   |   Class: Class ${note.grade}   |   Reference: ${uniqueCode}`, margin + 5, y + 16);
+  doc.text(`Subject: ${note.subject}   |   Level: ${getAcademicLevelLabel(note)}   |   Reference: ${uniqueCode}`, margin + 5, y + 16);
   doc.text(`Institution: ${note.schoolName || 'General School Archive'}`, margin + 5, y + 22);
   doc.text(`Author: ${note.author?.name || 'Verified Contributor'} (${note.author?.badge || 'Student Contributor'})`, margin + 5, y + 28);
 
