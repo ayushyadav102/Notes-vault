@@ -270,7 +270,7 @@ export const INITIAL_CLASSES: ClassCategory[] = [
     label: 'Class 5',
     stage: 'Primary',
     description: 'Foundational Environmental Studies, Elementary Maths & Languages',
-    subjects: ['Environmental Studies (EVS)', 'Mathematics', 'English', 'Hindi'],
+    subjects: ['Environmental Studies (EVS)', 'Mathematics', 'English', 'Language Arts'],
     color: 'emerald'
   },
   {
@@ -279,7 +279,7 @@ export const INITIAL_CLASSES: ClassCategory[] = [
     label: 'Class 6',
     stage: 'Middle School',
     description: 'Introduction to General Science, Algebra & Social Studies',
-    subjects: ['General Science', 'Mathematics', 'Social Science', 'English', 'Hindi'],
+    subjects: ['General Science', 'Mathematics', 'Social Science', 'English', 'Language Arts'],
     color: 'teal'
   },
   {
@@ -287,8 +287,8 @@ export const INITIAL_CLASSES: ClassCategory[] = [
     grade: 7,
     label: 'Class 7',
     stage: 'Middle School',
-    description: 'Physics, Chemistry, Biology fundamentals & Indian History',
-    subjects: ['Science', 'Mathematics', 'Social Science', 'English', 'Hindi'],
+    description: 'Physics, Chemistry, Biology fundamentals & History',
+    subjects: ['Science', 'Mathematics', 'Social Science', 'English', 'Language Arts'],
     color: 'cyan'
   },
   {
@@ -297,7 +297,7 @@ export const INITIAL_CLASSES: ClassCategory[] = [
     label: 'Class 8',
     stage: 'Middle School',
     description: 'Pre-board foundation in Algebra, Geometry & Applied Science',
-    subjects: ['Mathematics', 'Science', 'Social Science', 'English', 'Hindi'],
+    subjects: ['Mathematics', 'Science', 'Social Science', 'English', 'Language Arts'],
     color: 'blue'
   },
   {
@@ -315,7 +315,7 @@ export const INITIAL_CLASSES: ClassCategory[] = [
     label: 'Class 10',
     stage: 'Secondary',
     description: '10th Board Exam revision sheets, formula maps & sample question banks',
-    subjects: ['Science', 'Mathematics', 'Social Science', 'English', 'Hindi'],
+    subjects: ['Science', 'Mathematics', 'Social Science', 'English', 'Language Arts'],
     color: 'purple'
   },
   {

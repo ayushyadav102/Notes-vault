@@ -16,9 +16,37 @@ export interface LoginPayload {
   password: string;
 }
 
-// Clean and normalize ID (e.g. "Ayush 10" -> "ayush10")
+// Validation function: Username must be email format like ayush@123gmail.com
+export const isValidEmailId = (id: string): boolean => {
+  if (!id) return false;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(id.trim());
+};
+
+// Validation function: Password must contain letters, '@', and numbers (e.g. ayush@123)
+export const isValidPassword = (password: string): { valid: boolean; message?: string } => {
+  if (!password || password.length < 6) {
+    return { valid: false, message: 'Password must be at least 6 characters long.' };
+  }
+  const hasLetters = /[a-zA-Z]/.test(password);
+  const hasAtSymbol = password.includes('@');
+  const hasNumbers = /[0-9]/.test(password);
+
+  if (!hasLetters) {
+    return { valid: false, message: "Password must contain letters (e.g., ayush@123)." };
+  }
+  if (!hasAtSymbol) {
+    return { valid: false, message: "Password must contain the '@' symbol (e.g., ayush@123)." };
+  }
+  if (!hasNumbers) {
+    return { valid: false, message: "Password must contain numbers (e.g., ayush@123)." };
+  }
+  return { valid: true };
+};
+
+// Clean and normalize ID to lowercase trimmed string
 export const normalizeStudentId = (id: string): string => {
-  return id.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  return id.trim().toLowerCase();
 };
 
 // Retrieve currently active student from local storage
@@ -43,7 +71,8 @@ export const setActiveStudentSession = (student: StudentUser | null) => {
 // Direct Firestore REST API backup write for guaranteed persistence
 const writeUserDirectToFirestoreRest = async (userData: any, normId: string) => {
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${normId}?key=${firebaseConfig.apiKey}`;
+    const encodedId = encodeURIComponent(normId);
+    const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${encodedId}?key=${firebaseConfig.apiKey}`;
     const fields: Record<string, any> = {
       id: { stringValue: normId },
       studentId: { stringValue: normId },
@@ -73,7 +102,8 @@ const writeUserDirectToFirestoreRest = async (userData: any, normId: string) => 
 // Direct Firestore REST API lookup
 const readUserDirectFromFirestoreRest = async (normId: string) => {
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${normId}?key=${firebaseConfig.apiKey}`;
+    const encodedId = encodeURIComponent(normId);
+    const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${encodedId}?key=${firebaseConfig.apiKey}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const json = await res.json();
@@ -94,16 +124,21 @@ const readUserDirectFromFirestoreRest = async (normId: string) => {
 
 // Register a new student ID
 export const registerStudent = async (payload: RegisterPayload): Promise<StudentUser> => {
-  const normId = normalizeStudentId(payload.studentId);
-  if (!normId) {
-    throw new Error('Please enter a valid User ID (alphanumeric).');
-  }
   if (!payload.name.trim()) {
     throw new Error('Please enter your full name.');
   }
-  if (!payload.password || payload.password.length < 4) {
-    throw new Error('Password must be at least 4 characters long.');
+
+  const rawId = payload.studentId.trim();
+  if (!isValidEmailId(rawId)) {
+    throw new Error('User ID must be a valid email format (e.g., ayush@123gmail.com).');
   }
+
+  const pwdCheck = isValidPassword(payload.password);
+  if (!pwdCheck.valid) {
+    throw new Error(pwdCheck.message || "Password must contain letters, '@', and numbers (e.g., ayush@123).");
+  }
+
+  const normId = normalizeStudentId(rawId);
 
   // 1. Check if ID exists in Firestore
   const userDocRef = doc(db, 'users', normId);

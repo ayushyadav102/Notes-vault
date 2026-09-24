@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NotesVaultLogo } from './NotesVaultLogo';
-import { registerStudent, loginStudent } from '../lib/studentAuth';
+import { registerStudent, loginStudent, isValidEmailId, isValidPassword } from '../lib/studentAuth';
 import { StudentUser } from '../types';
 
 interface StudentAuthScreenProps {
@@ -31,6 +31,14 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Real-time password requirement checks
+  const hasLetters = /[a-zA-Z]/.test(regPassword);
+  const hasAt = regPassword.includes('@');
+  const hasNumbers = /[0-9]/.test(regPassword);
+  const hasMinLength = regPassword.length >= 6;
+  const isPasswordValid = hasLetters && hasAt && hasNumbers && hasMinLength;
+  const isEmailValid = isValidEmailId(studentId);
+
   // Handle Register (Create Account)
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,11 +49,16 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
       return;
     }
     if (!studentId.trim()) {
-      setErrorMessage('Please choose a Username / User ID.');
+      setErrorMessage('Please choose a Username / User ID in email format.');
       return;
     }
-    if (regPassword.length < 4) {
-      setErrorMessage('Password must be at least 4 characters.');
+    if (!isValidEmailId(studentId.trim())) {
+      setErrorMessage('User ID must be a valid email format (e.g., ayush@123gmail.com).');
+      return;
+    }
+    const pwdCheck = isValidPassword(regPassword);
+    if (!pwdCheck.valid) {
+      setErrorMessage(pwdCheck.message || "Password must contain letters, '@', and numbers (e.g., ayush@123).");
       return;
     }
 
@@ -229,28 +242,42 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
                 </div>
               </div>
 
-              {/* Username / User ID */}
+              {/* Username / User ID in Email Format */}
               <div>
                 <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5 text-left">
-                  Username / User ID <span className="text-rose-500">*</span>
+                  User ID / Email ID <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative flex items-center bg-slate-50 border-2 border-slate-200 focus-within:border-blue-600 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/15 rounded-2xl transition-all shadow-2xs overflow-hidden">
+                <div className={`relative flex items-center bg-slate-50 border-2 ${studentId && !isEmailValid ? 'border-rose-400 focus-within:border-rose-600' : 'border-slate-200 focus-within:border-blue-600'} focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/15 rounded-2xl transition-all shadow-2xs overflow-hidden`}>
                   <span className="material-symbols-outlined absolute left-3.5 text-slate-500 text-[20px]">
-                    badge
+                    mail
                   </span>
                   <input
-                    type="text"
+                    type="email"
                     required
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
-                    placeholder="Enter user ID"
+                    placeholder="e.g. ayush@123gmail.com"
                     className="w-full pl-11 pr-4 py-3 bg-transparent text-sm font-black text-slate-900 font-mono placeholder:text-slate-400 placeholder:font-normal focus:outline-none lowercase"
                   />
                 </div>
-                <p className="text-[11px] font-semibold text-slate-500 mt-1 text-left flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[13px] text-blue-600">info</span>
-                  <span>Used for logging in anytime</span>
-                </p>
+                <div className="mt-1.5 flex items-center justify-between text-[11px] font-semibold text-left">
+                  {studentId.trim().length === 0 ? (
+                    <span className="text-slate-500 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px] text-blue-600">info</span>
+                      <span>Must be in email format (e.g. ayush@123gmail.com)</span>
+                    </span>
+                  ) : isEmailValid ? (
+                    <span className="text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <span className="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span>
+                      <span>Valid email ID format</span>
+                    </span>
+                  ) : (
+                    <span className="text-rose-700 flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                      <span className="material-symbols-outlined text-[14px] text-rose-600">cancel</span>
+                      <span>Must be valid email format (e.g. ayush@123gmail.com)</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Password */}
@@ -258,7 +285,7 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
                 <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5 text-left">
                   Password <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative flex items-center bg-slate-50 border-2 border-slate-200 focus-within:border-blue-600 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/15 rounded-2xl transition-all shadow-2xs overflow-hidden">
+                <div className={`relative flex items-center bg-slate-50 border-2 ${regPassword && !isPasswordValid ? 'border-amber-400 focus-within:border-blue-600' : 'border-slate-200 focus-within:border-blue-600'} focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/15 rounded-2xl transition-all shadow-2xs overflow-hidden`}>
                   <span className="material-symbols-outlined absolute left-3.5 text-slate-500 text-[20px]">
                     lock
                   </span>
@@ -267,7 +294,7 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
                     required
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="Enter your password"
+                    placeholder="e.g. ayush@123"
                     className="w-full pl-11 pr-11 py-3 bg-transparent text-sm font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none"
                   />
                   <button
@@ -279,6 +306,45 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
                       {showPassword ? 'visibility_off' : 'visibility'}
                     </span>
                   </button>
+                </div>
+
+                {/* Real-time Password Requirements Checklist */}
+                <div className="mt-2 p-2.5 bg-slate-50/90 rounded-xl border border-slate-200/80 text-[11px] space-y-1.5 text-left">
+                  <div className="font-bold text-slate-700 flex items-center justify-between">
+                    <span>Password Requirements (e.g. ayush@123):</span>
+                    {isPasswordValid && (
+                      <span className="text-emerald-700 font-bold flex items-center gap-0.5 bg-emerald-100/90 px-1.5 py-0.5 rounded text-[10px]">
+                        <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                        <span>Valid</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 font-semibold">
+                    <div className={`flex items-center gap-1.5 ${hasLetters ? 'text-emerald-700' : 'text-slate-500'}`}>
+                      <span className="material-symbols-outlined text-[14px]">
+                        {hasLetters ? 'check_circle' : 'radio_button_unchecked'}
+                      </span>
+                      <span>Letters (a-z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${hasAt ? 'text-emerald-700' : 'text-slate-500'}`}>
+                      <span className="material-symbols-outlined text-[14px]">
+                        {hasAt ? 'check_circle' : 'radio_button_unchecked'}
+                      </span>
+                      <span>'@' symbol</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${hasNumbers ? 'text-emerald-700' : 'text-slate-500'}`}>
+                      <span className="material-symbols-outlined text-[14px]">
+                        {hasNumbers ? 'check_circle' : 'radio_button_unchecked'}
+                      </span>
+                      <span>Numbers (0-9)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-700' : 'text-slate-500'}`}>
+                      <span className="material-symbols-outlined text-[14px]">
+                        {hasMinLength ? 'check_circle' : 'radio_button_unchecked'}
+                      </span>
+                      <span>Min 6 characters</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -344,25 +410,25 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
                   User Login
                 </h2>
                 <p className="text-xs font-medium text-slate-500 mt-0.5">
-                  Enter your User ID and Password to access your notes.
+                  Enter your User ID (e.g. ayush@123gmail.com) and Password to access your notes.
                 </p>
               </div>
 
               {/* User ID */}
               <div>
                 <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5 text-left">
-                  User ID <span className="text-rose-500">*</span>
+                  User ID / Email ID <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative flex items-center bg-slate-50 border-2 border-slate-200 focus-within:border-blue-600 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/15 rounded-2xl transition-all shadow-2xs overflow-hidden">
                   <span className="material-symbols-outlined absolute left-3.5 text-slate-500 text-[20px]">
-                    badge
+                    mail
                   </span>
                   <input
                     type="text"
                     required
                     value={loginId}
                     onChange={(e) => setLoginId(e.target.value)}
-                    placeholder="Enter your user ID"
+                    placeholder="e.g. ayush@123gmail.com"
                     className="w-full pl-11 pr-4 py-3 bg-transparent text-sm font-black text-slate-900 font-mono placeholder:text-slate-400 placeholder:font-normal focus:outline-none lowercase"
                   />
                 </div>
@@ -382,7 +448,7 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
                     required
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="Enter your password"
+                    placeholder="e.g. ayush@123"
                     className="w-full pl-11 pr-11 py-3 bg-transparent text-sm font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none"
                   />
                   <button
