@@ -120,6 +120,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return `${code}${randomNum}`;
   };
 
+  const formatNoteDate = (timestamp: any): string => {
+    if (!timestamp) return 'Recently';
+    try {
+      if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+      }
+      if (typeof timestamp.toMillis === 'function') {
+        return new Date(timestamp.toMillis()).toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+      }
+      if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+        const d = new Date(timestamp);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          });
+        }
+      }
+    } catch {}
+    return 'Recently';
+  };
+
   const handleStartEdit = (note: Note) => {
     if (!isMyNote(note)) {
       setDownloadFeedback({
@@ -337,8 +368,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const bookmarkedNotesCount = notes.filter(n => bookmarks.includes(n.id)).length;
 
   const filteredNotes = notes.filter(n => {
-    if (viewFilter === 'mine' && !isMyNote(n)) {
-      return false;
+    if (viewFilter === 'mine') {
+      return isMyNote(n);
     }
     if (viewFilter === 'bookmarks' && !bookmarks.includes(n.id)) {
       return false;
@@ -576,8 +607,51 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
 
-        {/* PROMINENT DIRECT SEARCH & DOWNLOAD BY UNIQUE ID SECTION */}
-        <div className="mb-space-lg bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-white p-4 sm:p-6 rounded-2xl border border-blue-200/90 shadow-sm">
+        {/* If viewing My Uploads: Show dedicated clean panel. Otherwise show Search, View Switcher & Category filters */}
+        {viewFilter === 'mine' ? (
+          <div className="mb-6 p-5 sm:p-6 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border-2 border-blue-200/90 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/25 shrink-0">
+                <span className="material-symbols-outlined text-[28px]">folder_shared</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-serif">
+                    My Uploaded Notes
+                  </h2>
+                  <span className="px-3 py-1 bg-blue-600 text-white text-xs font-black rounded-full shadow-xs">
+                    {myNotesCount} {myNotesCount === 1 ? 'Note' : 'Notes'}
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-slate-600 mt-1">
+                  Total {myNotesCount} self-uploaded notes in your account. You can edit details, download, or delete them.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewFilter('all')}
+                className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 shadow-2xs cursor-pointer transition-all"
+              >
+                <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                <span>Back to All Notes</span>
+              </button>
+              <button
+                type="button"
+                onClick={onUploadClick}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-blue-500/25 cursor-pointer transition-all border-none"
+              >
+                <span className="material-symbols-outlined text-[16px]">add</span>
+                <span>Upload New Note</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* PROMINENT DIRECT SEARCH & DOWNLOAD BY UNIQUE ID SECTION */}
+            <div className="mb-space-lg bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-white p-4 sm:p-6 rounded-2xl border border-blue-200/90 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-[#164373] text-white flex items-center justify-center shadow-xs">
@@ -712,11 +786,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button
               type="button"
               onClick={() => setViewFilter('mine')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-none flex items-center gap-1.5 ${
-                viewFilter === 'mine' 
-                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-md shadow-blue-500/25' 
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/60 bg-transparent'
-              }`}
+              className="px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-none flex items-center gap-1.5 text-slate-700 hover:text-slate-900 hover:bg-white/60 bg-transparent"
             >
               <span className="material-symbols-outlined text-[16px]">person</span>
               <span>My Uploads ({myNotesCount})</span>
@@ -735,26 +805,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Informative banner when viewing "My Uploaded Notes" */}
-        {viewFilter === 'mine' && (
-          <div className="mb-space-md p-3.5 bg-blue-50/90 border border-blue-200 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm text-blue-900 font-medium">
-            <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-blue-700 text-[22px]">verified_user</span>
-              <span>
-                <strong>My Uploads Panel:</strong> These are notes uploaded by your account. You can <strong>Edit</strong> or <strong>Delete</strong> your notes here. These options are hidden from other users.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={onUploadClick}
-              className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg shrink-0 cursor-pointer border-none shadow-2xs text-xs flex items-center gap-1"
-            >
-              <span className="material-symbols-outlined text-[15px]">add</span>
-              <span>Upload New Note</span>
-            </button>
-          </div>
-        )}
 
         {/* Category & Academic Level Filter Controls */}
         <div className="flex flex-col gap-3 mb-space-lg">
@@ -949,20 +999,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
             )}
           </div>
         </div>
+      </>
+    )}
 
-        <div className="flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm mb-space-md bg-surface-container-lowest p-space-sm rounded-xl shadow-xs">
-          <span>
-            Showing <strong className="text-on-surface">{filteredNotes.length}</strong> notes
-            {searchQuery && <span> matching "<span className="text-primary font-semibold">{searchQuery}</span>"</span>}
-          </span>
-          <button 
-            onClick={onUploadClick}
-            className="inline-flex items-center gap-1 text-primary hover:underline font-semibold cursor-pointer border-none bg-transparent"
-          >
-            <span className="material-symbols-outlined text-[16px]">add</span>
-            <span>Add New Note</span>
-          </button>
-        </div>
+        {viewFilter === 'mine' ? (
+          <div className="flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm mb-space-md bg-blue-50/80 p-3 rounded-xl border border-blue-200">
+            <span className="font-bold text-blue-950 flex items-center gap-1.5 text-xs sm:text-sm">
+              <span className="material-symbols-outlined text-blue-700 text-[18px]">verified</span>
+              <span>Total self-uploaded notes: <strong className="text-blue-700">{filteredNotes.length}</strong></span>
+            </span>
+            <button 
+              onClick={onUploadClick}
+              className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold text-xs cursor-pointer border-none bg-transparent"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span>Upload New Note</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm mb-space-md bg-surface-container-lowest p-space-sm rounded-xl shadow-xs">
+            <span>
+              Showing <strong className="text-on-surface">{filteredNotes.length}</strong> notes
+              {searchQuery && <span> matching "<span className="text-primary font-semibold">{searchQuery}</span>"</span>}
+            </span>
+            <button 
+              onClick={onUploadClick}
+              className="inline-flex items-center gap-1 text-primary hover:underline font-semibold cursor-pointer border-none bg-transparent"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span>Add New Note</span>
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter mb-space-xl">
           {filteredNotes.length === 0 && (
@@ -997,129 +1065,234 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           )}
 
-          {filteredNotes.map(note => (
-            <article key={note.id} className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-all flex flex-col justify-between group border border-outline-variant/20 relative">
-              <div>
-                <div className="flex items-center justify-between mb-space-sm gap-2">
-                  <div className="flex items-center gap-space-xs flex-wrap">
-                    <span className="bg-primary-fixed text-primary font-label-sm text-label-sm font-semibold px-space-sm py-0.5 rounded-full">
-                      {getAcademicLevelLabel(note)}
-                    </span>
-                    <span className="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-medium px-space-sm py-0.5 rounded-full">
-                      {note.subject}
-                    </span>
+          {filteredNotes.map(note => {
+            if (viewFilter === 'mine') {
+              return (
+                <article 
+                  key={note.id} 
+                  className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-2 border-blue-200/90 relative"
+                >
+                  <div>
+                    {/* Specific Details: Level, Subject, Unique ID */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="bg-blue-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-full shadow-2xs">
+                          {getAcademicLevelLabel(note)}
+                        </span>
+                        <span className="bg-slate-100 text-slate-800 font-bold text-xs px-2.5 py-0.5 rounded-full border border-slate-200">
+                          {note.subject}
+                        </span>
+                      </div>
+
+                      {note.schoolCode && (
+                        <span className="bg-blue-50 text-blue-900 border border-blue-300 font-mono text-xs font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-2xs tracking-wider" title="Unique Note Identifier">
+                          <span className="material-symbols-outlined text-[13px] text-blue-700">tag</span>
+                          <span>{note.schoolCode}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* School / Institution Name */}
+                    <div className="flex items-center gap-1.5 text-xs text-blue-900 font-bold mb-2.5 bg-blue-50/70 px-2.5 py-1 rounded-lg border border-blue-100/90 w-fit max-w-full">
+                      <span className="material-symbols-outlined text-[15px] text-blue-700 shrink-0">school</span>
+                      <span className="truncate">{note.schoolName || 'General School Repository'}</span>
+                    </div>
+
+                    {/* Note Title */}
+                    <h3 className="text-base font-extrabold text-slate-900 leading-snug line-clamp-2 mb-2 font-serif">
+                      {note.title}
+                    </h3>
+
+                    {/* File name & size */}
+                    {note.fileName && (
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-2 font-mono truncate" title={note.fileName}>
+                        <span className="material-symbols-outlined text-[15px] text-slate-500 shrink-0">attach_file</span>
+                        <span className="truncate font-semibold">{note.fileName}</span>
+                        {note.sizeMB ? <span className="text-slate-400 font-normal">({note.sizeMB} MB)</span> : null}
+                      </div>
+                    )}
+
+                    {/* Upload Date ("date kab dala he") */}
+                    <div className="mt-3 p-2.5 bg-blue-50/70 border border-blue-200/90 rounded-xl flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                        <span className="material-symbols-outlined text-[16px] text-blue-600">calendar_month</span>
+                        <span>Uploaded On:</span>
+                      </div>
+                      <span className="font-extrabold text-blue-950 font-mono">
+                        {formatNoteDate(note.createdAt)}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    {/* My Note Badge */}
-                    {user && note.ownerId === user.uid && (
-                      <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-sans text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs" title="Created by your account">
-                        <span className="material-symbols-outlined text-[12px] text-emerald-700">person</span>
-                        <span>My Note</span>
-                      </span>
-                    )}
+                  {/* Edit & Delete Action Buttons */}
+                  <div className="mt-4 pt-3 border-t border-slate-200 flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(note)}
+                        className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/25 cursor-pointer border-none transition-all active:scale-95"
+                        title="Edit this note's details or file"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                        <span>Edit Note</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingNote(note)}
+                        className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 font-bold text-xs flex items-center justify-center gap-1.5 border border-rose-300 cursor-pointer transition-all active:scale-95"
+                        title="Delete this note"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                        <span>Delete Note</span>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewNote(note)}
+                        className="py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1 border border-slate-200 cursor-pointer transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[15px] text-slate-500">visibility</span>
+                        <span>View Info</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(note)}
+                        className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1 cursor-pointer border-none transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[15px]">download</span>
+                        <span>Download</span>
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            }
 
-                    {/* Unique ID Badge */}
-                    {note.schoolCode && (
-                      <span className="bg-blue-100 text-blue-900 border border-blue-200/90 font-mono text-[11px] font-black px-2 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs tracking-wider" title="Unique School & Note Identifier">
-                        <span className="material-symbols-outlined text-[12px] text-blue-700">tag</span>
-                        <span>{note.schoolCode}</span>
+            return (
+              <article key={note.id} className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-all flex flex-col justify-between group border border-outline-variant/20 relative">
+                <div>
+                  <div className="flex items-center justify-between mb-space-sm gap-2">
+                    <div className="flex items-center gap-space-xs flex-wrap">
+                      <span className="bg-primary-fixed text-primary font-label-sm text-label-sm font-semibold px-space-sm py-0.5 rounded-full">
+                        {getAcademicLevelLabel(note)}
                       </span>
-                    )}
+                      <span className="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-medium px-space-sm py-0.5 rounded-full">
+                        {note.subject}
+                      </span>
+                    </div>
 
-                    {/* Bookmark / Save Action Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleBookmark(note.id);
-                      }}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer border ${
-                        bookmarks.includes(note.id)
-                          ? 'bg-amber-50 text-amber-600 border-amber-300'
-                          : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 border-slate-200/60 bg-white'
-                      }`}
-                      title={bookmarks.includes(note.id) ? "Remove from bookmarks" : "Save to bookmarks"}
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {/* My Note Badge */}
+                      {user && note.ownerId === user.uid && (
+                        <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-sans text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs" title="Created by your account">
+                          <span className="material-symbols-outlined text-[12px] text-emerald-700">person</span>
+                          <span>My Note</span>
+                        </span>
+                      )}
+
+                      {/* Unique ID Badge */}
+                      {note.schoolCode && (
+                        <span className="bg-blue-100 text-blue-900 border border-blue-200/90 font-mono text-[11px] font-black px-2 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs tracking-wider" title="Unique School & Note Identifier">
+                          <span className="material-symbols-outlined text-[12px] text-blue-700">tag</span>
+                          <span>{note.schoolCode}</span>
+                        </span>
+                      )}
+
+                      {/* Bookmark / Save Action Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleBookmark(note.id);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer border ${
+                          bookmarks.includes(note.id)
+                            ? 'bg-amber-50 text-amber-600 border-amber-300'
+                            : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 border-slate-200/60 bg-white'
+                        }`}
+                        title={bookmarks.includes(note.id) ? "Remove from bookmarks" : "Save to bookmarks"}
+                      >
+                        <span className="material-symbols-outlined text-[16px]">
+                          {bookmarks.includes(note.id) ? 'bookmark' : 'bookmark_border'}
+                        </span>
+                      </button>
+
+                      {/* Quick Edit & Delete Action Buttons: ONLY visible inside "My Uploads" for student's own notes */}
+                      {canManageNote(note) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEdit(note);
+                            }}
+                            className="p-1.5 rounded-lg text-blue-700 hover:text-blue-900 hover:bg-blue-100 transition-colors cursor-pointer border border-blue-300 bg-blue-50"
+                            title="Edit Note Details or PDF"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">edit</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingNote(note);
+                            }}
+                            className="p-1.5 rounded-lg text-rose-700 hover:text-rose-900 hover:bg-rose-100 transition-colors cursor-pointer border border-rose-300 bg-rose-50"
+                            title="Delete My Note"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* School Name Tag */}
+                  <div className="flex items-center gap-1.5 text-xs text-blue-900 font-semibold mb-2.5 bg-blue-50/90 px-2.5 py-1 rounded-lg border border-blue-100/90 w-fit max-w-full">
+                    <span className="material-symbols-outlined text-[15px] text-blue-700 shrink-0">school</span>
+                    <span className="truncate">{note.schoolName || 'School Archive'}</span>
+                  </div>
+                  
+                  <h2 className="font-title-md text-title-md text-on-surface font-semibold group-hover:text-primary transition-colors line-clamp-2 mb-space-xs">
+                    {note.title}
+                  </h2>
+                  
+                  <div className="flex items-center gap-space-sm py-space-xs mb-space-md">
+                    <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-label-sm text-label-sm font-bold">
+                      {note.author.initials}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-label-sm text-label-sm text-on-surface flex items-center gap-1">
+                        {note.author.name}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-space-md mt-auto bg-slate-50/60 -mx-space-lg -mb-space-lg p-space-md rounded-b-2xl border-t border-slate-200/80">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button 
+                      onClick={() => setPreviewNote(note)}
+                      className="bg-white hover:bg-blue-50/70 text-slate-800 hover:text-blue-700 font-bold text-xs sm:text-sm py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-300 shadow-2xs hover:border-blue-400 active:scale-95"
                     >
-                      <span className="material-symbols-outlined text-[16px]">
-                        {bookmarks.includes(note.id) ? 'bookmark' : 'bookmark_border'}
-                      </span>
+                      <span className="material-symbols-outlined text-[17px] text-blue-600">visibility</span>
+                      <span>View Info</span>
                     </button>
-
-                    {/* Quick Edit & Delete Action Buttons: ONLY visible inside "My Uploads" for student's own notes */}
-                    {canManageNote(note) && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartEdit(note);
-                          }}
-                          className="p-1.5 rounded-lg text-blue-700 hover:text-blue-900 hover:bg-blue-100 transition-colors cursor-pointer border border-blue-300 bg-blue-50"
-                          title="Edit Note Details or PDF"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">edit</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingNote(note);
-                          }}
-                          className="p-1.5 rounded-lg text-rose-700 hover:text-rose-900 hover:bg-rose-100 transition-colors cursor-pointer border border-rose-300 bg-rose-50"
-                          title="Delete My Note"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">delete</span>
-                        </button>
-                      </>
-                    )}
+                    <button 
+                      onClick={() => handleDownload(note)}
+                      className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white font-extrabold text-xs sm:text-sm py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35 transition-all cursor-pointer group border-none active:scale-95"
+                      title="Download Note PDF / Document"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">download</span>
+                      <span>Download</span>
+                    </button>
                   </div>
                 </div>
-
-                {/* School Name Tag */}
-                <div className="flex items-center gap-1.5 text-xs text-blue-900 font-semibold mb-2.5 bg-blue-50/90 px-2.5 py-1 rounded-lg border border-blue-100/90 w-fit max-w-full">
-                  <span className="material-symbols-outlined text-[15px] text-blue-700 shrink-0">school</span>
-                  <span className="truncate">{note.schoolName || 'School Archive'}</span>
-                </div>
-                
-                <h2 className="font-title-md text-title-md text-on-surface font-semibold group-hover:text-primary transition-colors line-clamp-2 mb-space-xs">
-                  {note.title}
-                </h2>
-                
-                <div className="flex items-center gap-space-sm py-space-xs mb-space-md">
-                  <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-label-sm text-label-sm font-bold">
-                    {note.author.initials}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-label-sm text-label-sm text-on-surface flex items-center gap-1">
-                      {note.author.name}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="pt-space-md mt-auto bg-slate-50/60 -mx-space-lg -mb-space-lg p-space-md rounded-b-2xl border-t border-slate-200/80">
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button 
-                    onClick={() => setPreviewNote(note)}
-                    className="bg-white hover:bg-blue-50/70 text-slate-800 hover:text-blue-700 font-bold text-xs sm:text-sm py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-300 shadow-2xs hover:border-blue-400 active:scale-95"
-                  >
-                    <span className="material-symbols-outlined text-[17px] text-blue-600">visibility</span>
-                    <span>View Info</span>
-                  </button>
-                  <button 
-                    onClick={() => handleDownload(note)}
-                    className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white font-extrabold text-xs sm:text-sm py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35 transition-all cursor-pointer group border-none active:scale-95"
-                    title="Download Note PDF / Document"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">download</span>
-                    <span>Download</span>
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       </div>
 

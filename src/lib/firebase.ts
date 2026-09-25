@@ -7,34 +7,11 @@ import {
   setPersistence, 
   browserLocalPersistence 
 } from 'firebase/auth';
-import { 
-  initializeFirestore, 
-  getFirestore, 
-  persistentLocalCache,
-  persistentMultipleTabManager 
-} from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-const rawDbId = (firebaseConfig as any).firestoreDatabaseId;
-const dbId = (!rawDbId || rawDbId === '(default)') ? undefined : rawDbId;
-
-let firestoreInstance;
-try {
-  const firestoreSettings = {
-    experimentalForceLongPolling: true,
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  };
-  firestoreInstance = dbId 
-    ? initializeFirestore(app, firestoreSettings, dbId)
-    : initializeFirestore(app, firestoreSettings);
-} catch (e) {
-  firestoreInstance = dbId ? getFirestore(app, dbId) : getFirestore(app);
-}
-
-export const db = firestoreInstance;
+export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 

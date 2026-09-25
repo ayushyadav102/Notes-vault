@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { User, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Dashboard } from './components/Dashboard';
@@ -31,10 +31,24 @@ export default function App() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [filterMyNotes, setFilterMyNotes] = useState<boolean>(false);
 
-  // Optional background auth sync if user ever signs in
+  const [authReady, setAuthReady] = useState<boolean>(false);
+
+  // Background auth sync to ensure session readiness
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        setAuthReady(true);
+      } else {
+        try {
+          const cred = await signInAnonymously(auth);
+          setUser(cred.user);
+        } catch {
+          // Anonymous auth optional if not enabled in console
+        } finally {
+          setAuthReady(true);
+        }
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -82,6 +96,7 @@ export default function App() {
 
   // Real-time Firestore sync with auto-seed for empty database & classes metadata
   useEffect(() => {
+    if (!authReady) return;
     let isSeeding = false;
 
     // Ensure 'classes' collection is populated with curriculum metadata (cached)
@@ -153,7 +168,7 @@ export default function App() {
       setNotes(INITIAL_NOTES);
       setLoadingNotes(false);
       try {
-        handleFirestoreError(error, OperationType.LIST, 'notes');
+        handleFirestoreError(error, OperationType.GET, 'notes');
       } catch (err) {
         console.warn("Firestore permission issue detected on notes collection:", err);
       }
@@ -162,7 +177,7 @@ export default function App() {
     return () => {
       unsubscribeNotes();
     };
-  }, []);
+  }, [authReady]);
 
   const handleUploadClick = () => {
     navigateToTab('upload');

@@ -2,13 +2,6 @@ import React, { useState } from 'react';
 import { NotesVaultLogo } from './NotesVaultLogo';
 import { registerStudent, loginStudent, isValidEmailId, isValidPassword } from '../lib/studentAuth';
 import { StudentUser } from '../types';
-import { 
-  EducationLevel, 
-  EDUCATION_CATEGORIES, 
-  SCHOOL_CLASSES, 
-  COLLEGE_SEMESTERS, 
-  COACHING_STREAMS 
-} from '../lib/educationLevels';
 
 interface StudentAuthScreenProps {
   onAuthSuccess: (student: StudentUser) => void;
@@ -23,15 +16,10 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
     return hasPreviousAccount ? 'login' : 'register';
   });
 
-  // Register Form Fields
+  // Register Form Fields (Only Name, User ID, and Password as requested)
   const [name, setName] = useState('');
   const [studentId, setStudentId] = useState('');
   const [regPassword, setRegPassword] = useState('');
-  const [educationLevel, setEducationLevel] = useState<EducationLevel>('college');
-  const [schoolClassInput, setSchoolClassInput] = useState<string>('10');
-  const [collegeSemInput, setCollegeSemInput] = useState<string>('1');
-  const [coachingStreamInput, setCoachingStreamInput] = useState<string>('JEE / NEET');
-  const [schoolName, setSchoolName] = useState<string>('');
 
   // Login Form Fields
   const [loginId, setLoginId] = useState('');
@@ -76,39 +64,10 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
 
     setLoading(true);
     try {
-      let levelLabel = '';
-      let finalGrade = 10;
-      let finalSemester: number | undefined = undefined;
-      let finalCoachingStream: string | undefined = undefined;
-
-      if (educationLevel === 'college') {
-        const typedSem = collegeSemInput.trim();
-        const numSem = parseInt(typedSem.replace(/\D/g, ''), 10);
-        finalSemester = !isNaN(numSem) ? numSem : undefined;
-        finalGrade = finalSemester || 1;
-        levelLabel = typedSem ? (typedSem.toLowerCase().includes('sem') ? typedSem : `Semester ${typedSem}`) : 'College';
-      } else if (educationLevel === 'coaching') {
-        const typedStream = coachingStreamInput.trim() || 'Competitive Coaching';
-        finalCoachingStream = typedStream;
-        finalGrade = 0;
-        levelLabel = typedStream;
-      } else {
-        const typedClass = schoolClassInput.trim();
-        const numClass = parseInt(typedClass.replace(/\D/g, ''), 10);
-        finalGrade = !isNaN(numClass) ? numClass : 10;
-        levelLabel = typedClass ? (typedClass.toLowerCase().includes('class') ? typedClass : `Class ${typedClass}`) : 'School';
-      }
-
       const student = await registerStudent({
         name: name.trim(),
         studentId: studentId.trim(),
         password: regPassword,
-        educationLevel,
-        grade: finalGrade,
-        semester: finalSemester,
-        coachingStream: finalCoachingStream,
-        academicLevelLabel: levelLabel,
-        schoolName: schoolName.trim() || undefined,
       });
 
       localStorage.setItem('notesvault_has_account', 'true');
@@ -400,158 +359,6 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
                   />
                   <span>Show password</span>
                 </label>
-              </div>
-
-              {/* Academic Level & Stream (School / College / Coaching) */}
-              <div className="pt-2 border-t border-slate-200/80 space-y-3 text-left">
-                <div>
-                  <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">
-                    Academic Category
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {EDUCATION_CATEGORIES.map(cat => {
-                      const isSelected = educationLevel === cat.id;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setEducationLevel(cat.id)}
-                          className={`py-2 px-2 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">{cat.icon}</span>
-                          <span className="leading-tight">{cat.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Sub-level typeable inputs with quick suggestions */}
-                {educationLevel === 'school' && (
-                  <div className="space-y-1.5 p-3 bg-blue-50/60 rounded-xl border border-blue-200">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-black text-slate-800" htmlFor="reg-school-class">
-                        Type School Class / Standard
-                      </label>
-                      <span className="text-[11px] font-bold text-blue-700">Class: {schoolClassInput || 'N/A'}</span>
-                    </div>
-                    <input
-                      id="reg-school-class"
-                      type="text"
-                      required
-                      value={schoolClassInput}
-                      onChange={(e) => setSchoolClassInput(e.target.value)}
-                      placeholder="e.g. Class 10, 12th PCM, 9th Standard"
-                      className="w-full px-3 py-2 text-xs font-bold bg-white border border-blue-300 rounded-lg focus:border-blue-600 focus:outline-none"
-                    />
-                    <div className="flex flex-wrap gap-1 pt-0.5">
-                      {SCHOOL_CLASSES.map(g => (
-                        <button
-                          key={g}
-                          type="button"
-                          onClick={() => setSchoolClassInput(String(g))}
-                          className={`px-2 py-0.5 text-[11px] font-bold rounded border cursor-pointer transition-all ${
-                            schoolClassInput === String(g) || schoolClassInput === `Class ${g}`
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          Class {g}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {educationLevel === 'college' && (
-                  <div className="space-y-1.5 p-3 bg-indigo-50/60 rounded-xl border border-indigo-200">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-black text-slate-800" htmlFor="reg-college-sem">
-                        Type College Semester & Branch
-                      </label>
-                      <span className="text-[11px] font-bold text-indigo-700">Sem: {collegeSemInput || 'N/A'}</span>
-                    </div>
-                    <input
-                      id="reg-college-sem"
-                      type="text"
-                      required
-                      value={collegeSemInput}
-                      onChange={(e) => setCollegeSemInput(e.target.value)}
-                      placeholder="e.g. Sem 4 B.Tech CSE, 3rd Sem BCA, 5th Sem B.Com"
-                      className="w-full px-3 py-2 text-xs font-bold bg-white border border-indigo-300 rounded-lg focus:border-indigo-600 focus:outline-none"
-                    />
-                    <div className="flex flex-wrap gap-1 pt-0.5">
-                      {COLLEGE_SEMESTERS.map(s => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setCollegeSemInput(String(s))}
-                          className={`px-2 py-0.5 text-[11px] font-bold rounded border cursor-pointer transition-all ${
-                            collegeSemInput === String(s) || collegeSemInput === `Sem ${s}` || collegeSemInput === `Semester ${s}`
-                              ? 'bg-indigo-600 text-white border-indigo-600'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          Sem {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {educationLevel === 'coaching' && (
-                  <div className="space-y-1.5 p-3 bg-amber-50/60 rounded-xl border border-amber-200">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-black text-slate-800" htmlFor="reg-coaching-stream">
-                        Type Exam / Coaching Subject
-                      </label>
-                      <span className="text-[11px] font-bold text-amber-800 line-clamp-1 max-w-[150px]">{coachingStreamInput || 'N/A'}</span>
-                    </div>
-                    <input
-                      id="reg-coaching-stream"
-                      type="text"
-                      required
-                      value={coachingStreamInput}
-                      onChange={(e) => setCoachingStreamInput(e.target.value)}
-                      placeholder="e.g. JEE Advanced Physics, NEET Biology, UPSC, SSC CGL"
-                      className="w-full px-3 py-2 text-xs font-bold bg-white border border-amber-300 rounded-lg focus:border-amber-600 focus:outline-none"
-                    />
-                    <div className="flex flex-wrap gap-1 pt-0.5">
-                      {COACHING_STREAMS.slice(0, 5).map(stream => (
-                        <button
-                          key={stream}
-                          type="button"
-                          onClick={() => setCoachingStreamInput(stream)}
-                          className={`px-2 py-0.5 text-[11px] font-bold rounded border cursor-pointer transition-all ${
-                            coachingStreamInput === stream
-                              ? 'bg-amber-600 text-white border-amber-600'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          {stream}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Institution Name */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    {educationLevel === 'college' ? 'College / University Name' : (educationLevel === 'coaching' ? 'Coaching Center / Institute' : 'School Name')} <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={schoolName}
-                    onChange={(e) => setSchoolName(e.target.value)}
-                    placeholder={educationLevel === 'college' ? 'e.g. Delhi University, IIT, BITS' : (educationLevel === 'coaching' ? 'e.g. Allen, Resonance, Aakash' : 'e.g. Delhi Public School')}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-600 focus:outline-none transition-all"
-                  />
-                </div>
               </div>
 
               {/* Submit Button */}

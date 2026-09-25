@@ -1,7 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Open academic archive: allow reading, uploading and downloading without sign-in barriers
+    match /notes/{noteId} {
+      allow read, write: if true;
+    }
+    match /classes/{classId} {
+      allow read, write: if true;
+    }
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    match /downloads/{downloadId} {
+      allow read, write: if true;
+    }
+    match /note_files/{fileId} {
+      allow read, write: if true;
+    }
     match /{document=**} {
       allow read, write: if true;
     }
