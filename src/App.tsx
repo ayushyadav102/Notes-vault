@@ -96,7 +96,11 @@ export default function App() {
 
   // Real-time Firestore sync with auto-seed for empty database & classes metadata
   useEffect(() => {
-    if (!authReady) return;
+    if (!authReady || !user) {
+      setNotes(INITIAL_NOTES);
+      setLoadingNotes(false);
+      return;
+    }
     let isSeeding = false;
 
     // Ensure 'classes' collection is populated with curriculum metadata (cached)
@@ -177,7 +181,7 @@ export default function App() {
     return () => {
       unsubscribeNotes();
     };
-  }, [authReady]);
+  }, [authReady, user]);
 
   const handleUploadClick = () => {
     navigateToTab('upload');

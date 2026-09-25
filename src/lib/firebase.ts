@@ -7,10 +7,19 @@ import {
   setPersistence, 
   browserLocalPersistence 
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
+
+try {
+  initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+  }, (firebaseConfig as any).firestoreDatabaseId);
+} catch {
+  // Already initialized
+}
+
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
@@ -93,7 +102,13 @@ interface FirestoreErrorInfo {
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errorMessage = error instanceof Error ? error.message : String(error);
   
-  if (errorMessage.includes('unavailable') || errorMessage.includes('offline') || errorMessage.includes('network')) {
+  if (
+    errorMessage.includes('unavailable') || 
+    errorMessage.includes('offline') || 
+    errorMessage.includes('network') ||
+    errorMessage.includes('Backend didn\'t respond') ||
+    errorMessage.includes('Could not reach Cloud Firestore')
+  ) {
     console.warn(`Firestore network warning during ${operationType} on ${path}:`, errorMessage);
     return;
   }
