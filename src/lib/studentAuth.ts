@@ -20,30 +20,18 @@ export interface LoginPayload {
   password: string;
 }
 
-// Validation function: Username must be email format like ayush@123gmail.com
+// Validation function: Username can be email or email-like or handle format
 export const isValidEmailId = (id: string): boolean => {
   if (!id) return false;
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return emailRegex.test(id.trim());
+  const trimmed = id.trim();
+  // Support email format (user@domain.com) or alphanumeric handle with @ or .
+  return trimmed.length >= 3 && /^[a-zA-Z0-9._%+-]+(@[a-zA-Z0-9.-]+)?$/.test(trimmed);
 };
 
-// Validation function: Password must contain letters, '@', and numbers (e.g. ayush@123)
+// Validation function: Password length and basic check
 export const isValidPassword = (password: string): { valid: boolean; message?: string } => {
-  if (!password || password.length < 6) {
-    return { valid: false, message: 'Password must be at least 6 characters long.' };
-  }
-  const hasLetters = /[a-zA-Z]/.test(password);
-  const hasAtSymbol = password.includes('@');
-  const hasNumbers = /[0-9]/.test(password);
-
-  if (!hasLetters) {
-    return { valid: false, message: "Password must contain letters (e.g., ayush@123)." };
-  }
-  if (!hasAtSymbol) {
-    return { valid: false, message: "Password must contain the '@' symbol (e.g., ayush@123)." };
-  }
-  if (!hasNumbers) {
-    return { valid: false, message: "Password must contain numbers (e.g., ayush@123)." };
+  if (!password || password.length < 4) {
+    return { valid: false, message: 'Password must be at least 4 characters long.' };
   }
   return { valid: true };
 };
@@ -72,75 +60,40 @@ export const setActiveStudentSession = (student: StudentUser | null) => {
   }
 };
 
-// Direct Firestore REST API backup write for guaranteed persistence
-const writeUserDirectToFirestoreRest = async (userData: any, normId: string) => {
+// Auto-sync any existing local accounts to server so mobile-created IDs reach server
+export const syncLocalAccountsToServer = async () => {
   try {
-    const encodedId = encodeURIComponent(normId);
-    const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${encodedId}?key=${firebaseConfig.apiKey}`;
-    const fields: Record<string, any> = {
-      id: { stringValue: normId },
-      studentId: { stringValue: normId },
-      name: { stringValue: userData.name },
-      password: { stringValue: userData.password },
-      role: { stringValue: userData.role || 'student' },
-      createdAt: { timestampValue: new Date().toISOString() },
-      lastLoginAt: { timestampValue: new Date().toISOString() }
-    };
-    if (userData.grade !== undefined && userData.grade !== null) {
-      fields.grade = { integerValue: String(userData.grade) };
+    const localDb: Record<string, any> = JSON.parse(localStorage.getItem('notesvault_local_accounts') || '{}');
+    for (const [normId, account] of Object.entries(localDb)) {
+      try {
+        await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: account.name,
+            studentId: normId,
+            password: account.password,
+            educationLevel: account.educationLevel,
+            grade: account.grade,
+            semester: account.semester,
+            coachingStream: account.coachingStream,
+            academicLevelLabel: account.academicLevelLabel,
+            schoolName: account.schoolName,
+          })
+        });
+      } catch {
+        // silent
+      }
     }
-    if (userData.semester !== undefined && userData.semester !== null) {
-      fields.semester = { integerValue: String(userData.semester) };
-    }
-    if (userData.educationLevel) {
-      fields.educationLevel = { stringValue: userData.educationLevel };
-    }
-    if (userData.coachingStream) {
-      fields.coachingStream = { stringValue: userData.coachingStream };
-    }
-    if (userData.academicLevelLabel) {
-      fields.academicLevelLabel = { stringValue: userData.academicLevelLabel };
-    }
-    if (userData.schoolName) {
-      fields.schoolName = { stringValue: userData.schoolName };
-    }
-    const payload = { fields };
-    await fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-  } catch (err) {
-    console.warn("REST direct write error:", err);
+  } catch {
+    // silent
   }
 };
 
-// Direct Firestore REST API lookup
-const readUserDirectFromFirestoreRest = async (normId: string) => {
-  try {
-    const encodedId = encodeURIComponent(normId);
-    const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${encodedId}?key=${firebaseConfig.apiKey}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const json = await res.json();
-    if (!json?.fields) return null;
-    return {
-      id: json.fields.id?.stringValue || normId,
-      studentId: json.fields.studentId?.stringValue || normId,
-      name: json.fields.name?.stringValue || normId,
-      educationLevel: json.fields.educationLevel?.stringValue || undefined,
-      grade: json.fields.grade?.integerValue ? Number(json.fields.grade.integerValue) : undefined,
-      semester: json.fields.semester?.integerValue ? Number(json.fields.semester.integerValue) : undefined,
-      coachingStream: json.fields.coachingStream?.stringValue || undefined,
-      academicLevelLabel: json.fields.academicLevelLabel?.stringValue || undefined,
-      schoolName: json.fields.schoolName?.stringValue || '',
-      password: json.fields.password?.stringValue || '',
-      role: json.fields.role?.stringValue || 'student',
-    };
-  } catch {
-    return null;
-  }
-};
+// Trigger sync on load
+if (typeof window !== 'undefined') {
+  syncLocalAccountsToServer();
+}
 
 // Register a new student ID
 export const registerStudent = async (payload: RegisterPayload): Promise<StudentUser> => {
@@ -150,33 +103,15 @@ export const registerStudent = async (payload: RegisterPayload): Promise<Student
 
   const rawId = payload.studentId.trim();
   if (!isValidEmailId(rawId)) {
-    throw new Error('User ID must be a valid email format (e.g., ayush@123gmail.com).');
+    throw new Error('User ID must be valid (e.g., ayush@123gmail.com or ayush@123).');
   }
 
   const pwdCheck = isValidPassword(payload.password);
   if (!pwdCheck.valid) {
-    throw new Error(pwdCheck.message || "Password must contain letters, '@', and numbers (e.g., ayush@123).");
+    throw new Error(pwdCheck.message || 'Password must be at least 4 characters long.');
   }
 
   const normId = normalizeStudentId(rawId);
-
-  // 1. Check if ID exists in Firestore
-  const userDocRef = doc(db, 'users', normId);
-  try {
-    const existingSnap = await getDoc(userDocRef);
-    if (existingSnap.exists()) {
-      throw new Error(`User ID "${normId}" already exists. Please log in or choose another ID.`);
-    }
-  } catch (err: any) {
-    if (err.message && err.message.includes('already exists')) {
-      throw err;
-    }
-    // Check REST
-    const restExisting = await readUserDirectFromFirestoreRest(normId);
-    if (restExisting) {
-      throw new Error(`User ID "${normId}" already exists. Please log in.`);
-    }
-  }
 
   const studentData: StudentUser = {
     id: normId,
@@ -191,26 +126,27 @@ export const registerStudent = async (payload: RegisterPayload): Promise<Student
     ...(payload.schoolName?.trim() ? { schoolName: payload.schoolName.trim() } : {}),
   };
 
-  // 2. Direct REST Write (Instant, hits Firestore backend directly)
-  await writeUserDirectToFirestoreRest({
-    ...studentData,
-    password: payload.password,
-  }, normId);
-
-  // 3. Firestore SDK Write
+  // 1. Centralized Server Database Registration (Guaranteed cross-device: Mobile -> PC)
   try {
-    const docToSave: Record<string, any> = {
-      ...studentData,
-      password: payload.password,
-      createdAt: serverTimestamp(),
-      lastLoginAt: serverTimestamp(),
-    };
-    await setDoc(userDocRef, docToSave);
-  } catch (writeErr: any) {
-    console.warn("Firestore SDK user write warning:", writeErr);
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...studentData,
+        password: payload.password,
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user) {
+        studentData.name = data.user.name || studentData.name;
+      }
+    }
+  } catch (serverErr) {
+    console.warn("Central server register notice:", serverErr);
   }
 
-  // 4. Save to local fallback cache
+  // 2. Also save to local fallback cache on current device
   try {
     const localDb: Record<string, any> = JSON.parse(localStorage.getItem('notesvault_local_accounts') || '{}');
     localDb[normId] = {
@@ -220,6 +156,19 @@ export const registerStudent = async (payload: RegisterPayload): Promise<Student
     localStorage.setItem('notesvault_local_accounts', JSON.stringify(localDb));
   } catch (localErr) {
     console.warn("Local storage write error:", localErr);
+  }
+
+  // 3. Optional Firestore SDK write
+  try {
+    const userDocRef = doc(db, 'users', normId);
+    await setDoc(userDocRef, {
+      ...studentData,
+      password: payload.password,
+      createdAt: serverTimestamp(),
+      lastLoginAt: serverTimestamp(),
+    });
+  } catch (writeErr: any) {
+    // Non-blocking
   }
 
   setActiveStudentSession(studentData);
@@ -236,64 +185,124 @@ export const loginStudent = async (payload: LoginPayload): Promise<StudentUser> 
     throw new Error('Please enter your password.');
   }
 
-  let userData: any = null;
+  let studentUser: StudentUser | null = null;
+  let serverErrorMessage: string | null = null;
 
-  // 1. Try Firestore SDK
-  const userDocRef = doc(db, 'users', normId);
+  // 1. Primary: Central Server API (Cross-Device Database)
   try {
-    const snap = await getDoc(userDocRef);
-    if (snap.exists()) {
-      userData = snap.data();
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studentId: normId,
+        password: payload.password,
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user) {
+        studentUser = {
+          id: data.user.id || normId,
+          studentId: data.user.studentId || normId,
+          name: data.user.name || normId,
+          educationLevel: data.user.educationLevel,
+          grade: data.user.grade,
+          semester: data.user.semester,
+          coachingStream: data.user.coachingStream,
+          academicLevelLabel: data.user.academicLevelLabel,
+          schoolName: data.user.schoolName,
+          role: data.user.role || 'student',
+        };
+      }
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      serverErrorMessage = errData.error || null;
+      if (res.status === 401) {
+        throw new Error(errData.error || 'Incorrect password! Please check and try again.');
+      }
     }
-  } catch (netErr) {
-    console.warn("Firestore SDK read warning:", netErr);
+  } catch (serverErr: any) {
+    if (serverErr.message && serverErr.message.includes('Incorrect password')) {
+      throw serverErr;
+    }
+    console.warn("Server login fallback:", serverErr);
   }
 
-  // 2. Fallback to direct REST API
-  if (!userData) {
-    userData = await readUserDirectFromFirestoreRest(normId);
+  // 2. Secondary: Firestore SDK check
+  if (!studentUser) {
+    try {
+      const userDocRef = doc(db, 'users', normId);
+      const snap = await getDoc(userDocRef);
+      if (snap.exists()) {
+        const userData = snap.data();
+        if (userData.password === payload.password) {
+          studentUser = {
+            id: normId,
+            studentId: normId,
+            name: userData.name || normId,
+            educationLevel: userData.educationLevel,
+            grade: userData.grade ? Number(userData.grade) : undefined,
+            semester: userData.semester ? Number(userData.semester) : undefined,
+            coachingStream: userData.coachingStream,
+            academicLevelLabel: userData.academicLevelLabel,
+            schoolName: userData.schoolName,
+            role: userData.role || 'student',
+          };
+        } else {
+          throw new Error('Incorrect password! Please check and try again.');
+        }
+      }
+    } catch (fbErr: any) {
+      if (fbErr.message && fbErr.message.includes('Incorrect password')) {
+        throw fbErr;
+      }
+    }
   }
 
-  // 3. Fallback to local accounts
-  if (!userData) {
+  // 3. Tertiary: Local accounts fallback
+  if (!studentUser) {
     try {
       const localDb: Record<string, any> = JSON.parse(localStorage.getItem('notesvault_local_accounts') || '{}');
-      if (localDb[normId]) {
-        userData = localDb[normId];
+      const localUser = localDb[normId] || Object.values(localDb).find((u: any) => 
+        u.studentId === normId || u.id === normId || (u.studentId && normId.startsWith(u.studentId.split('@')[0]))
+      );
+      if (localUser) {
+        if (localUser.password === payload.password) {
+          studentUser = {
+            id: localUser.id || normId,
+            studentId: localUser.studentId || normId,
+            name: localUser.name || normId,
+            educationLevel: localUser.educationLevel,
+            grade: localUser.grade ? Number(localUser.grade) : undefined,
+            semester: localUser.semester ? Number(localUser.semester) : undefined,
+            coachingStream: localUser.coachingStream,
+            academicLevelLabel: localUser.academicLevelLabel,
+            schoolName: localUser.schoolName,
+            role: localUser.role || 'student',
+          };
+          // Sync it back to server so other devices get it too!
+          fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...localUser, password: payload.password })
+          }).catch(() => {});
+        } else {
+          throw new Error('Incorrect password! Please check and try again.');
+        }
       }
-    } catch {
-      // ignore
+    } catch (localErr: any) {
+      if (localErr.message && localErr.message.includes('Incorrect password')) {
+        throw localErr;
+      }
     }
   }
 
-  if (!userData) {
-    throw new Error(`User ID "${normId}" not found. Please create an account first (Register).`);
-  }
-
-  if (userData.password !== payload.password) {
-    throw new Error('Incorrect password! Please check and try again.');
-  }
-
-  const studentUser: StudentUser = {
-    id: normId,
-    studentId: normId,
-    name: userData.name || normId,
-    ...(userData.educationLevel ? { educationLevel: userData.educationLevel } : {}),
-    ...(userData.grade ? { grade: Number(userData.grade) } : {}),
-    ...(userData.semester ? { semester: Number(userData.semester) } : {}),
-    ...(userData.coachingStream ? { coachingStream: userData.coachingStream } : {}),
-    ...(userData.academicLevelLabel ? { academicLevelLabel: userData.academicLevelLabel } : {}),
-    ...(userData.schoolName ? { schoolName: userData.schoolName } : {}),
-    role: userData.role || 'student',
-  };
-
-  // Update last login
-  try {
-    await updateDoc(userDocRef, {
-      lastLoginAt: serverTimestamp(),
-    });
-  } catch {
-    // non-blocking
+  if (!studentUser) {
+    if (serverErrorMessage) {
+      throw new Error(serverErrorMessage);
+    }
+    throw new Error(`User ID "${normId}" not found. Please click "Register" to create your account first.`);
   }
 
   setActiveStudentSession(studentUser);

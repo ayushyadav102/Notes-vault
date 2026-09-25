@@ -1,0 +1,41 @@
+{
+  "ahirayush2121@gmail.com": {
+    "id": "ahirayush2121@gmail.com",
+    "studentId": "ahirayush2121@gmail.com",
+    "name": "Ayush Ahir",
+    "password": "ayush@123",
+    "role": "student",
+    "educationLevel": "school",
+    "grade": 10,
+    "academicLevelLabel": "Class 10",
+    "schoolName": "Delhi Public School",
+    "createdAt": "2026-09-25T14:32:51.322Z",
+    "lastLoginAt": "2026-09-25T14:34:21.309Z"
+  },
+  "ayush@123gmail.com": {
+    "id": "ayush@123gmail.com",
+    "studentId": "ayush@123gmail.com",
+    "name": "Ayush",
+    "password": "ayush@123",
+    "role": "student",
+    "educationLevel": "school",
+    "grade": 10,
+    "academicLevelLabel": "Class 10",
+    "schoolName": "Central Public School",
+    "createdAt": "2026-09-25T14:32:51.323Z",
+    "lastLoginAt": "2026-09-25T14:34:25.041Z"
+  },
+  "rahul@test.com": {
+    "id": "rahul@test.com",
+    "studentId": "rahul@test.com",
+    "name": "Rahul Verma",
+    "password": "rahul@123",
+    "role": "student",
+    "educationLevel": "school",
+    "grade": 11,
+    "academicLevelLabel": "Class 11",
+    "schoolName": "Study Notes Vault Archive",
+    "createdAt": "2026-09-25T14:33:39.205Z",
+    "lastLoginAt": "2026-09-25T14:33:47.625Z"
+  }
+}

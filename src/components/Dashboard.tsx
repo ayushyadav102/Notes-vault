@@ -593,71 +593,117 @@ export const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="flex flex-col w-full">
       <div className="max-w-7xl mx-auto px-margin w-full py-space-xl">
-        {/* Navigation Breadcrumb / Back button */}
-        {onBackToHome && (
-          <div className="mb-4">
-            <button
-              onClick={onBackToHome}
-              className="inline-flex items-center gap-1.5 text-slate-700 hover:text-blue-600 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 transition-all cursor-pointer border border-slate-200 shadow-2xs"
-              title="Go back to Home page"
-            >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-              <span>Back to Home</span>
-            </button>
-          </div>
-        )}
-
-        {/* Dashboard Title Header (When not in My Uploads filter) */}
-        {viewFilter !== 'mine' && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider">
-                  Academic Portal
-                </span>
-                <span className="text-xs text-slate-500 font-semibold">
-                  School &amp; College Archive
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <span>Download Notes</span>
-                <span className="text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">
-                  {notes.length} Available
-                </span>
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl">
-                Search notes by Unique ID (e.g. <span className="font-mono font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded">BJS101</span>), filter by School Class or College Semester, and download verified study PDFs.
-              </p>
-            </div>
-            
+        {/* Breadcrumb Navigation */}
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-4 font-sans">
+          {onBackToHome && (
             <button
               type="button"
-              onClick={onUploadClick}
-              className="self-start sm:self-center px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-sm shadow-blue-500/25 transition-all cursor-pointer border-none active:scale-95 shrink-0"
+              onClick={onBackToHome}
+              className="hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-none p-0 text-slate-500"
             >
-              <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
-              <span>Upload Notes</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+              <span>Back to Home</span>
             </button>
+          )}
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-800 font-bold">Download Notes Dashboard</span>
+        </div>
+
+        {/* Top Header Card (White Box) */}
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {onBackToHome && (
+              <button
+                onClick={onBackToHome}
+                className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-blue-600 flex items-center justify-center transition-all cursor-pointer border border-slate-200 shadow-2xs shrink-0"
+                title="Go back to Home page"
+              >
+                <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+              </button>
+            )}
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-sans">
+                  Download Notes
+                </h1>
+                <span className="text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full font-sans">
+                  {notes.length} Available Notes
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-sans">
+                Search notes by Unique ID, filter by class or semester, and download verified study PDFs.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onUploadClick}
+            className="self-start sm:self-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm shadow-blue-500/25 transition-all cursor-pointer border-none active:scale-95 shrink-0"
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            <span>Upload Notes</span>
+          </button>
+        </div>
+
+        {/* Blue Gradient Sub-banner Box */}
+        {viewFilter !== 'mine' && (
+          <div className="mb-6 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-md relative overflow-hidden">
+            <div className="absolute -right-8 -bottom-8 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md text-white flex items-center justify-center shrink-0 border border-white/20 shadow-xs">
+                  <span className="material-symbols-outlined text-[26px]">school</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white font-bold text-[10px] tracking-wider uppercase backdrop-blur-xs">
+                      Academic Portal
+                    </span>
+                    <span className="text-white/80 text-xs font-semibold">
+                      School &amp; College Archive
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black text-white mt-1 font-sans">
+                    Verified Study Material &amp; PDF Vault
+                  </h2>
+                  <p className="text-xs sm:text-sm text-blue-100 mt-0.5 font-sans leading-relaxed">
+                    Search with Unique ID (e.g. <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded text-white font-bold">DPS1001</span>), filter by School Classes 5th–12th or Semesters, and download instantly.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={onUploadClick}
+                  className="px-4 py-2.5 rounded-xl bg-white text-blue-700 hover:bg-blue-50 font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-sm transition-all cursor-pointer border-none active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">add</span>
+                  <span>Upload Notes</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* If viewing My Uploads: Show dedicated clean panel. Otherwise show Search, View Switcher & Category filters */}
+        {/* If viewing My Uploads: Show dedicated clean panel */}
         {viewFilter === 'mine' ? (
-          <div className="mb-6 p-5 sm:p-6 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border-2 border-blue-200/90 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="mb-6 p-5 sm:p-6 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border border-blue-200 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/25 shrink-0">
-                <span className="material-symbols-outlined text-[28px]">folder_shared</span>
+                <span className="material-symbols-outlined text-[26px]">folder_shared</span>
               </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-serif">
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 font-sans">
                     My Uploaded Notes
                   </h2>
-                  <span className="px-3 py-1 bg-blue-600 text-white text-xs font-black rounded-full shadow-xs">
+                  <span className="px-3 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full shadow-2xs">
                     {myNotesCount} {myNotesCount === 1 ? 'Note' : 'Notes'}
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-slate-600 mt-1">
+                <p className="text-xs text-slate-600 mt-1 font-sans">
                   Total {myNotesCount} self-uploaded notes in your account. You can edit details, download, or delete them.
                 </p>
               </div>
@@ -675,7 +721,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <button
                 type="button"
                 onClick={onUploadClick}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-blue-500/25 cursor-pointer transition-all border-none"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-500/25 cursor-pointer transition-all border-none"
               >
                 <span className="material-symbols-outlined text-[16px]">add</span>
                 <span>Upload New Note</span>
@@ -684,125 +730,106 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         ) : (
           <>
-            {/* PROMINENT DIRECT SEARCH & DOWNLOAD BY UNIQUE ID SECTION */}
-            <div className="mb-6 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-white p-4 sm:p-6 rounded-2xl border border-blue-200/90 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
-                <span className="material-symbols-outlined text-[20px]">search_check</span>
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                  Search &amp; Direct Download by Unique ID
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Enter note Unique ID (e.g. <span className="font-mono font-bold text-blue-700 bg-blue-100/90 px-1 py-0.5 rounded">BJS101</span>) or School Name to search &amp; download instantly.
-                </p>
-              </div>
-            </div>
-          </div>
+            {/* Search Bar Container */}
+            <div className="mb-6 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <form onSubmit={handleDirectDownload} className="flex flex-col sm:flex-row gap-2.5">
+                <div className="relative flex-1">
+                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by title, subject, school, or Unique ID (e.g. DPS1001)..."
+                    className="w-full pl-10 pr-10 py-3 bg-slate-50 hover:bg-white focus:bg-white text-slate-900 rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none text-sm sm:text-base font-sans transition-all placeholder:text-slate-400"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer p-1"
+                      title="Clear search"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  )}
+                </div>
 
-          {/* Search Input Form with Direct Download Button */}
-          <form onSubmit={handleDirectDownload} className="flex flex-col sm:flex-row gap-2.5">
-            <div className="relative flex-1">
-              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-600 text-[20px]">
-                tag
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Enter Unique ID (e.g. BJS101) or School Name..."
-                className="w-full pl-10 pr-10 py-3 bg-white text-on-surface rounded-xl border border-blue-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-xs text-sm sm:text-base font-medium transition-all placeholder:text-slate-400 font-mono"
-              />
-              {searchQuery && (
                 <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer p-1"
-                  title="Clear search"
+                  type="submit"
+                  className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm shadow-md shadow-blue-500/25 hover:shadow-lg active:scale-95 cursor-pointer border-none transition-all shrink-0"
+                  title="Search and directly download matched note"
                 >
-                  <span className="material-symbols-outlined text-[18px]">close</span>
+                  <span className="material-symbols-outlined text-[19px]">file_download</span>
+                  <span>Direct Download PDF</span>
                 </button>
+              </form>
+
+              {/* Feedback toast message */}
+              {downloadFeedback && (
+                <div className={`mt-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-2 font-sans animate-in fade-in duration-200 ${
+                  downloadFeedback.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : downloadFeedback.type === 'error'
+                    ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                    : 'bg-blue-50 text-blue-800 border border-blue-200'
+                }`}>
+                  <span className="material-symbols-outlined text-[18px]">
+                    {downloadFeedback.type === 'success' ? 'check_circle' : downloadFeedback.type === 'error' ? 'error' : 'info'}
+                  </span>
+                  <span>{downloadFeedback.message}</span>
+                </div>
+              )}
+
+              {/* Matched Note Card when user has typed an ID / query */}
+              {searchQuery.trim() && topMatch && (
+                <div className="mt-3 p-3 bg-blue-50/60 rounded-xl border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-150">
+                  <div className="flex items-start sm:items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[20px]">description</span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {topMatch.schoolCode && (
+                          <span className="bg-blue-600 text-white font-mono text-xs font-bold px-2 py-0.5 rounded shadow-2xs">
+                            {topMatch.schoolCode}
+                          </span>
+                        )}
+                        <span className="text-xs font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+                          {getAcademicLevelLabel(topMatch)} • {topMatch.subject}
+                        </span>
+                        <span className="text-xs text-blue-900 font-semibold truncate">
+                          {topMatch.schoolName || 'School Archive'}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-sm text-slate-900 mt-1 truncate font-sans">
+                        {topMatch.title}
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewNote(topMatch)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 cursor-pointer border border-slate-300 shadow-2xs transition-colors flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[15px] text-blue-600">visibility</span>
+                      <span>View Info</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(topMatch)}
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer border-none shadow-sm shadow-blue-500/20 flex items-center gap-1.5 transition-all active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">file_download</span>
+                      <span>Download PDF</span>
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-sm shadow-md shadow-blue-500/25 hover:shadow-lg active:scale-95 cursor-pointer border-none transition-all"
-                title="Search and directly download matched note"
-              >
-                <span className="material-symbols-outlined text-[19px]">file_download</span>
-                <span>Direct Download PDF</span>
-              </button>
-            </div>
-          </form>
-
-          {/* Toast / Notification feedback message */}
-          {downloadFeedback && (
-            <div className={`mt-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 animate-in fade-in duration-200 ${
-              downloadFeedback.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : downloadFeedback.type === 'error'
-                ? 'bg-rose-50 text-rose-800 border border-rose-200'
-                : 'bg-blue-50 text-blue-800 border border-blue-200'
-            }`}>
-              <span className="material-symbols-outlined text-[18px]">
-                {downloadFeedback.type === 'success' ? 'check_circle' : downloadFeedback.type === 'error' ? 'error' : 'info'}
-              </span>
-              <span>{downloadFeedback.message}</span>
-            </div>
-          )}
-
-          {/* Quick Matched Note Card when user has typed an ID / query */}
-          {searchQuery.trim() && topMatch && (
-            <div className="mt-3.5 p-3.5 bg-white rounded-xl border border-blue-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-150">
-              <div className="flex items-start sm:items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[22px]">description</span>
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {topMatch.schoolCode && (
-                      <span className="bg-blue-600 text-white font-mono text-xs font-black px-2 py-0.5 rounded shadow-2xs tracking-wider">
-                        {topMatch.schoolCode}
-                      </span>
-                    )}
-                    <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                      {getAcademicLevelLabel(topMatch)} • {topMatch.subject}
-                    </span>
-                    <span className="text-xs text-blue-900 font-semibold truncate">
-                      {topMatch.schoolName || 'School Archive'}
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-sm text-[#0b2545] mt-1 truncate">
-                    {topMatch.title}
-                  </h4>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                <button
-                  type="button"
-                  onClick={() => setPreviewNote(topMatch)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 cursor-pointer border border-slate-300 shadow-2xs transition-colors flex items-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-[15px] text-blue-600">visibility</span>
-                  <span>View Info</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDownload(topMatch)}
-                  className="px-4 py-2 rounded-xl text-xs font-extrabold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer border-none shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[16px]">file_download</span>
-                  <span>Download PDF</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* View Switcher: All Notes vs My Notes vs Bookmarks */}
         <div className="flex items-center justify-between gap-3 mb-space-md flex-wrap">
@@ -1069,34 +1096,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter mb-space-xl">
           {filteredNotes.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 text-center bg-white rounded-3xl shadow-sm border-2 border-dashed border-slate-200">
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 shadow-inner">
-                <span className="material-symbols-outlined text-[36px]">folder_open</span>
+            <div className="col-span-full flex flex-col items-center justify-center py-14 px-6 text-center bg-white rounded-3xl shadow-xs border border-slate-200/90 my-2 max-w-lg mx-auto w-full">
+              {/* Detailed folder icon with small circular blue star badge */}
+              <div className="relative mb-5">
+                <div className="w-20 h-20 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner">
+                  <span className="material-symbols-outlined text-[48px]">folder</span>
+                </div>
+                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs border-2 border-white">
+                  <span className="material-symbols-outlined text-[13px] font-bold">star</span>
+                </div>
               </div>
-              <h3 className="font-serif text-xl font-bold text-slate-900 mb-1">
-                {viewFilter === 'mine' ? 'You have not uploaded any notes yet' : 'No notes found'}
+
+              <h3 className="font-sans text-xl sm:text-2xl font-bold text-slate-900 mb-2">
+                {viewFilter === 'mine' ? 'No Uploaded Notes Yet' : 'No Notes Found'}
               </h3>
-              <p className="text-sm text-slate-500 max-w-sm mb-6 leading-relaxed">
+              <p className="font-sans text-sm text-slate-500 max-w-sm mb-6 leading-relaxed">
                 {viewFilter === 'mine'
                   ? 'Notes you upload will appear here. Upload your first note now!'
                   : searchQuery 
-                  ? `No study notes matched "${searchQuery}". Try searching by School Name, Unique ID (e.g. BJS101) or clearing filter.` 
-                  : 'There are no notes available for this class yet.'}
+                  ? `No study notes matched "${searchQuery}". Try adjusting your search query, Unique ID or clearing filters.` 
+                  : 'There are no study notes available for this category or class yet.'}
               </p>
               {searchQuery ? (
                 <button 
                   onClick={() => setSearchQuery('')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-5 rounded-xl cursor-pointer border-none transition-colors"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-6 rounded-xl cursor-pointer border-none transition-colors font-sans"
                 >
                   Clear Search
                 </button>
               ) : (
                 <button 
                   onClick={onUploadClick}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-xs py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-blue-500/25 transition-all cursor-pointer border-none active:scale-95"
+                  className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm sm:text-base shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 flex items-center justify-center gap-2 transition-all cursor-pointer border-none active:scale-95 font-sans"
                 >
-                  <span className="material-symbols-outlined text-[18px]">add</span>
-                  <span>Upload a Note</span>
+                  <span className="material-symbols-outlined text-[20px]">cloud_upload</span>
+                  <span>Upload Notes</span>
                 </button>
               )}
             </div>
@@ -1110,16 +1144,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
             return (
               <article 
                 key={note.id} 
-                className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-2 border-slate-200/90 hover:border-blue-300 relative group"
+                className="bg-white rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between border border-slate-200 hover:border-blue-400 relative group"
               >
                 <div>
                   {/* Top Badges Row: Level, Subject, ID, Bookmark */}
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="bg-blue-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-full shadow-2xs">
+                      <span className="bg-blue-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-full shadow-2xs font-sans">
                         {getAcademicLevelLabel(note)}
                       </span>
-                      <span className="bg-slate-100 text-slate-800 font-bold text-xs px-2.5 py-0.5 rounded-full border border-slate-200">
+                      <span className="bg-slate-100 text-slate-800 font-bold text-xs px-2.5 py-0.5 rounded-full border border-slate-200 font-sans">
                         {note.subject}
                       </span>
                     </div>
@@ -1170,13 +1204,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
 
                   {/* School / Institution Name Badge */}
-                  <div className="flex items-center gap-1.5 text-xs text-blue-900 font-bold mb-2.5 bg-blue-50/70 px-2.5 py-1 rounded-lg border border-blue-100/90 w-fit max-w-full">
+                  <div className="flex items-center gap-1.5 text-xs text-blue-900 font-bold mb-2.5 bg-blue-50/70 px-2.5 py-1 rounded-lg border border-blue-100/90 w-fit max-w-full font-sans">
                     <span className="material-symbols-outlined text-[15px] text-blue-700 shrink-0">school</span>
                     <span className="truncate">{note.schoolName || 'General School Repository'}</span>
                   </div>
 
                   {/* Note Title */}
-                  <h3 className="text-base font-extrabold text-slate-900 leading-snug line-clamp-2 mb-2 font-serif group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-base font-bold text-slate-900 leading-snug line-clamp-2 mb-2 font-sans group-hover:text-blue-600 transition-colors">
                     {note.title}
                   </h3>
 
@@ -1190,7 +1224,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   )}
 
                   {/* Upload Date & Contributor Row */}
-                  <div className="mt-3 p-2.5 bg-slate-50/90 border border-slate-200/90 rounded-xl flex items-center justify-between text-xs">
+                  <div className="mt-3 p-2.5 bg-slate-50/90 border border-slate-200/90 rounded-xl flex items-center justify-between text-xs font-sans">
                     <div className="flex items-center gap-1.5 text-slate-700 font-semibold truncate max-w-[50%]">
                       <span className="material-symbols-outlined text-[15px] text-slate-500 shrink-0">person</span>
                       <span className="truncate" title={note.author?.name || 'Contributor'}>
@@ -1212,7 +1246,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <button
                         type="button"
                         onClick={() => handleStartEdit(note)}
-                        className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/25 cursor-pointer border-none transition-all active:scale-95"
+                        className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/25 cursor-pointer border-none transition-all active:scale-95 font-sans"
                         title="Edit this note's details or file"
                       >
                         <span className="material-symbols-outlined text-[16px]">edit</span>
@@ -1221,7 +1255,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <button
                         type="button"
                         onClick={() => setDeletingNote(note)}
-                        className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 font-bold text-xs flex items-center justify-center gap-1.5 border border-rose-300 cursor-pointer transition-all active:scale-95"
+                        className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 font-bold text-xs flex items-center justify-center gap-1.5 border border-rose-300 cursor-pointer transition-all active:scale-95 font-sans"
                         title="Delete this note"
                       >
                         <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -1235,7 +1269,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <button
                       type="button"
                       onClick={() => setPreviewNote(note)}
-                      className="py-2.5 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 shadow-2xs hover:border-blue-400 cursor-pointer transition-all active:scale-95"
+                      className="py-2.5 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 shadow-2xs hover:border-blue-400 cursor-pointer transition-all active:scale-95 font-sans"
                     >
                       <span className="material-symbols-outlined text-[16px] text-blue-600">visibility</span>
                       <span>View Info</span>
@@ -1243,7 +1277,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <button
                       type="button"
                       onClick={() => handleDownload(note)}
-                      className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/25 hover:shadow-lg transition-all cursor-pointer border-none active:scale-95"
+                      className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/25 hover:shadow-lg transition-all cursor-pointer border-none active:scale-95 font-sans"
                       title="Download study note PDF"
                     >
                       <span className="material-symbols-outlined text-[17px]">file_download</span>
@@ -1254,6 +1288,48 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </article>
             );
           })}
+        </div>
+
+        {/* Three Bottom Feature Cards */}
+        <div className="mt-12 pt-8 border-t border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Feature 1 */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs hover:shadow-sm transition-all flex flex-col gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <span className="material-symbols-outlined text-[26px]">tag</span>
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-slate-900 font-sans">Direct ID Download</h4>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed font-sans">
+                Enter any unique note code (e.g. <span className="font-mono font-bold text-blue-700 bg-blue-50 px-1 py-0.5 rounded">DPS1001</span>) in the search bar to find and download original PDF notes immediately.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs hover:shadow-sm transition-all flex flex-col gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <span className="material-symbols-outlined text-[26px]">verified</span>
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-slate-900 font-sans">Verified Academic Material</h4>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed font-sans">
+                Access curriculum-aligned study notes across CBSE &amp; State School Classes 5th to 12th, College semesters, and competitive coaching.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs hover:shadow-sm transition-all flex flex-col gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <span className="material-symbols-outlined text-[26px]">cloud_upload</span>
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-slate-900 font-sans">100% Free &amp; Open Vault</h4>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed font-sans">
+                Contribute handwritten notes, share solutions with fellow students across the country, and manage your uploaded files anytime.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1276,10 +1352,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
             
             <div className="flex flex-col gap-1 pr-10">
-              <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md w-fit border border-blue-200">
+              <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md w-fit border border-blue-200 font-sans">
                 Note Details
               </span>
-              <h3 className="font-serif text-xl sm:text-2xl text-slate-900 font-extrabold mt-1 leading-snug">
+              <h3 className="font-sans text-xl sm:text-2xl text-slate-900 font-bold mt-1 leading-snug">
                 {previewNote.title}
               </h3>
             </div>

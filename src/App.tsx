@@ -126,6 +126,23 @@ export default function App() {
     };
     seedClassesIfEmpty();
 
+    // Fetch from central server database first (guaranteed across all devices)
+    const fetchServerNotes = async () => {
+      try {
+        const res = await fetch('/api/notes');
+        if (res.ok) {
+          const serverNotes = await res.json();
+          if (Array.isArray(serverNotes) && serverNotes.length > 0) {
+            setNotes(serverNotes);
+            setLoadingNotes(false);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch notes from central server API:", err);
+      }
+    };
+    fetchServerNotes();
+
     const notesQuery = query(collection(db, 'notes'));
     const unsubscribeNotes = onSnapshot(notesQuery, async (snapshot) => {
       if (snapshot.empty && !isSeeding) {
@@ -287,6 +304,21 @@ export default function App() {
       const cleanNoteData = Object.fromEntries(
         Object.entries(newNote).filter(([_, v]) => v !== undefined)
       );
+
+      // Save to central server API so it persists across all devices (Mobile & PC)
+      try {
+        await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...cleanNoteData,
+            id: noteId,
+            createdAt: new Date().toISOString(),
+          })
+        });
+      } catch (apiErr) {
+        console.warn("Could not post note to central server API:", apiErr);
+      }
 
       await setDoc(doc(db, 'notes', noteId), cleanNoteData);
       try {

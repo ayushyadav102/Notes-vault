@@ -35,8 +35,8 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
   const hasLetters = /[a-zA-Z]/.test(regPassword);
   const hasAt = regPassword.includes('@');
   const hasNumbers = /[0-9]/.test(regPassword);
-  const hasMinLength = regPassword.length >= 6;
-  const isPasswordValid = hasLetters && hasAt && hasNumbers && hasMinLength;
+  const hasMinLength = regPassword.length >= 4;
+  const isPasswordValid = hasMinLength;
   const isEmailValid = isValidEmailId(studentId);
 
   // Handle Register (Create Account)
@@ -410,8 +410,14 @@ export const StudentAuthScreen: React.FC<StudentAuthScreenProps> = ({
                   User Login
                 </h2>
                 <p className="text-xs font-medium text-slate-500 mt-0.5">
-                  Enter your User ID (e.g. ayush@123gmail.com) and Password to access your notes.
+                  Enter your User ID and Password created on your Mobile or PC.
                 </p>
+                <div className="mt-2.5 p-2.5 bg-blue-50/80 border border-blue-200/90 rounded-xl text-[11px] text-blue-900 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-blue-600 shrink-0">devices</span>
+                  <span className="font-semibold leading-tight">
+                    Any account created from Mobile is automatically synced and accessible here on PC!
+                  </span>
+                </div>
               </div>
 
               {/* User ID */}
