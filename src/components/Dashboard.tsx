@@ -595,14 +595,48 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="max-w-7xl mx-auto px-margin w-full py-space-xl">
         {/* Navigation Breadcrumb / Back button */}
         {onBackToHome && (
-          <div className="mb-space-md">
+          <div className="mb-4">
             <button
               onClick={onBackToHome}
-              className="inline-flex items-center gap-1.5 text-on-surface-variant hover:text-primary font-label-md text-label-md px-3 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer border border-outline-variant/30"
+              className="inline-flex items-center gap-1.5 text-slate-700 hover:text-blue-600 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 transition-all cursor-pointer border border-slate-200 shadow-2xs"
               title="Go back to Home page"
             >
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
               <span>Back to Home</span>
+            </button>
+          </div>
+        )}
+
+        {/* Dashboard Title Header (When not in My Uploads filter) */}
+        {viewFilter !== 'mine' && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider">
+                  Academic Portal
+                </span>
+                <span className="text-xs text-slate-500 font-semibold">
+                  School &amp; College Archive
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Download Notes</span>
+                <span className="text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">
+                  {notes.length} Available
+                </span>
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl">
+                Search notes by Unique ID (e.g. <span className="font-mono font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded">BJS101</span>), filter by School Class or College Semester, and download verified study PDFs.
+              </p>
+            </div>
+            
+            <button
+              type="button"
+              onClick={onUploadClick}
+              className="self-start sm:self-center px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-sm shadow-blue-500/25 transition-all cursor-pointer border-none active:scale-95 shrink-0"
+            >
+              <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+              <span>Upload Notes</span>
             </button>
           </div>
         )}
@@ -641,7 +675,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <button
                 type="button"
                 onClick={onUploadClick}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-blue-500/25 cursor-pointer transition-all border-none"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-blue-500/25 cursor-pointer transition-all border-none"
               >
                 <span className="material-symbols-outlined text-[16px]">add</span>
                 <span>Upload New Note</span>
@@ -651,15 +685,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         ) : (
           <>
             {/* PROMINENT DIRECT SEARCH & DOWNLOAD BY UNIQUE ID SECTION */}
-            <div className="mb-space-lg bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-white p-4 sm:p-6 rounded-2xl border border-blue-200/90 shadow-sm">
+            <div className="mb-6 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-white p-4 sm:p-6 rounded-2xl border border-blue-200/90 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#164373] text-white flex items-center justify-center shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
                 <span className="material-symbols-outlined text-[20px]">search_check</span>
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-[#0b2545] leading-tight">
-                  Search & Direct Download by Unique ID
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                  Search &amp; Direct Download by Unique ID
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Enter note Unique ID (e.g. <span className="font-mono font-bold text-blue-700 bg-blue-100/90 px-1 py-0.5 rounded">BJS101</span>) or School Name to search &amp; download instantly.
@@ -679,7 +713,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Enter Unique ID (e.g. BJS101) or School Name..."
-                className="w-full pl-10 pr-10 py-3 bg-white text-on-surface rounded-xl border border-blue-300 focus:border-[#164373] focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-xs text-sm sm:text-base font-medium transition-all placeholder:text-slate-400 font-mono"
+                className="w-full pl-10 pr-10 py-3 bg-white text-on-surface rounded-xl border border-blue-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-xs text-sm sm:text-base font-medium transition-all placeholder:text-slate-400 font-mono"
               />
               {searchQuery && (
                 <button
@@ -696,11 +730,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="submit"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white font-extrabold text-sm shadow-md shadow-blue-500/25 hover:shadow-lg active:scale-95 cursor-pointer border-none transition-all"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-sm shadow-md shadow-blue-500/25 hover:shadow-lg active:scale-95 cursor-pointer border-none transition-all"
                 title="Search and directly download matched note"
               >
-                <span className="material-symbols-outlined text-[19px]">download</span>
-                <span>Direct Download</span>
+                <span className="material-symbols-outlined text-[19px]">file_download</span>
+                <span>Direct Download PDF</span>
               </button>
             </div>
           </form>
@@ -752,17 +786,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setPreviewNote(topMatch)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 cursor-pointer border border-slate-300 shadow-2xs transition-colors"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 cursor-pointer border border-slate-300 shadow-2xs transition-colors flex items-center gap-1.5"
                 >
-                  View Info
+                  <span className="material-symbols-outlined text-[15px] text-blue-600">visibility</span>
+                  <span>View Info</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDownload(topMatch)}
-                  className="px-4 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white cursor-pointer border-none shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all active:scale-95"
+                  className="px-4 py-2 rounded-xl text-xs font-extrabold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer border-none shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all active:scale-95"
                 >
-                  <span className="material-symbols-outlined text-[16px]">download</span>
-                  <span>Download Now</span>
+                  <span className="material-symbols-outlined text-[16px]">file_download</span>
+                  <span>Download PDF</span>
                 </button>
               </div>
             </div>
@@ -1017,29 +1052,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm mb-space-md bg-surface-container-lowest p-space-sm rounded-xl shadow-xs">
-            <span>
-              Showing <strong className="text-on-surface">{filteredNotes.length}</strong> notes
-              {searchQuery && <span> matching "<span className="text-primary font-semibold">{searchQuery}</span>"</span>}
+          <div className="flex items-center justify-between text-slate-700 mb-space-md bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
+            <span className="text-xs sm:text-sm font-semibold">
+              Showing <strong className="text-slate-950 font-black">{filteredNotes.length}</strong> {filteredNotes.length === 1 ? 'note' : 'notes'}
+              {searchQuery && <span> matching "<span className="text-blue-700 font-bold">{searchQuery}</span>"</span>}
             </span>
             <button 
               onClick={onUploadClick}
-              className="inline-flex items-center gap-1 text-primary hover:underline font-semibold cursor-pointer border-none bg-transparent"
+              className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-800 font-bold text-xs sm:text-sm cursor-pointer border-none bg-transparent"
             >
-              <span className="material-symbols-outlined text-[16px]">add</span>
-              <span>Add New Note</span>
+              <span className="material-symbols-outlined text-[17px]">add_circle</span>
+              <span>Upload Note</span>
             </button>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter mb-space-xl">
           {filteredNotes.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-space-4xl text-center bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30">
-              <span className="material-symbols-outlined text-[48px] text-outline-variant mb-space-md">folder_open</span>
-              <h3 className="font-title-lg text-title-lg text-on-surface mb-space-xs">
+            <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 text-center bg-white rounded-3xl shadow-sm border-2 border-dashed border-slate-200">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 shadow-inner">
+                <span className="material-symbols-outlined text-[36px]">folder_open</span>
+              </div>
+              <h3 className="font-serif text-xl font-bold text-slate-900 mb-1">
                 {viewFilter === 'mine' ? 'You have not uploaded any notes yet' : 'No notes found'}
               </h3>
-              <p className="font-body-md text-body-md text-on-surface-variant max-w-sm mb-space-lg">
+              <p className="text-sm text-slate-500 max-w-sm mb-6 leading-relaxed">
                 {viewFilter === 'mine'
                   ? 'Notes you upload will appear here. Upload your first note now!'
                   : searchQuery 
@@ -1049,14 +1086,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {searchQuery ? (
                 <button 
                   onClick={() => setSearchQuery('')}
-                  className="bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md py-space-sm px-space-lg rounded-lg cursor-pointer border-none"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-5 rounded-xl cursor-pointer border-none transition-colors"
                 >
                   Clear Search
                 </button>
               ) : (
                 <button 
                   onClick={onUploadClick}
-                  className="bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md py-space-sm px-space-lg rounded-lg flex items-center justify-center gap-space-xs transition-colors cursor-pointer border-none font-bold"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-xs py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-blue-500/25 transition-all cursor-pointer border-none active:scale-95"
                 >
                   <span className="material-symbols-outlined text-[18px]">add</span>
                   <span>Upload a Note</span>
@@ -1066,66 +1103,111 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
 
           {filteredNotes.map(note => {
-            if (viewFilter === 'mine') {
-              return (
-                <article 
-                  key={note.id} 
-                  className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-2 border-blue-200/90 relative"
-                >
-                  <div>
-                    {/* Specific Details: Level, Subject, Unique ID */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="bg-blue-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-full shadow-2xs">
-                          {getAcademicLevelLabel(note)}
-                        </span>
-                        <span className="bg-slate-100 text-slate-800 font-bold text-xs px-2.5 py-0.5 rounded-full border border-slate-200">
-                          {note.subject}
-                        </span>
-                      </div>
+            const isMine = isMyNote(note);
+            const isBookmarked = bookmarks.includes(note.id);
+            const showOwnerActions = canManageNote(note);
 
-                      {note.schoolCode && (
-                        <span className="bg-blue-50 text-blue-900 border border-blue-300 font-mono text-xs font-black px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-2xs tracking-wider" title="Unique Note Identifier">
-                          <span className="material-symbols-outlined text-[13px] text-blue-700">tag</span>
-                          <span>{note.schoolCode}</span>
+            return (
+              <article 
+                key={note.id} 
+                className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-2 border-slate-200/90 hover:border-blue-300 relative group"
+              >
+                <div>
+                  {/* Top Badges Row: Level, Subject, ID, Bookmark */}
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="bg-blue-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-full shadow-2xs">
+                        {getAcademicLevelLabel(note)}
+                      </span>
+                      <span className="bg-slate-100 text-slate-800 font-bold text-xs px-2.5 py-0.5 rounded-full border border-slate-200">
+                        {note.subject}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {/* Self-uploaded indicator */}
+                      {isMine && (
+                        <span className="bg-emerald-50 text-emerald-800 border border-emerald-300 font-sans text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs" title="Uploaded by you">
+                          <span className="material-symbols-outlined text-[12px] text-emerald-700">person</span>
+                          <span>My Note</span>
                         </span>
                       )}
-                    </div>
 
-                    {/* School / Institution Name */}
-                    <div className="flex items-center gap-1.5 text-xs text-blue-900 font-bold mb-2.5 bg-blue-50/70 px-2.5 py-1 rounded-lg border border-blue-100/90 w-fit max-w-full">
-                      <span className="material-symbols-outlined text-[15px] text-blue-700 shrink-0">school</span>
-                      <span className="truncate">{note.schoolName || 'General School Repository'}</span>
-                    </div>
+                      {/* Unique Note ID Badge */}
+                      {note.schoolCode && (
+                        <span 
+                          className="bg-blue-50 text-blue-900 border border-blue-200/90 font-mono text-xs font-black px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-2xs tracking-wider cursor-pointer hover:bg-blue-100 transition-colors" 
+                          title="Unique Note ID (Click to copy)"
+                          onClick={() => handleCopyCode(note.schoolCode!)}
+                        >
+                          <span className="material-symbols-outlined text-[13px] text-blue-700">tag</span>
+                          <span>{note.schoolCode}</span>
+                          {copiedId === note.schoolCode ? (
+                            <span className="material-symbols-outlined text-[12px] text-emerald-600">check</span>
+                          ) : null}
+                        </span>
+                      )}
 
-                    {/* Note Title */}
-                    <h3 className="text-base font-extrabold text-slate-900 leading-snug line-clamp-2 mb-2 font-serif">
-                      {note.title}
-                    </h3>
-
-                    {/* File name & size */}
-                    {note.fileName && (
-                      <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-2 font-mono truncate" title={note.fileName}>
-                        <span className="material-symbols-outlined text-[15px] text-slate-500 shrink-0">attach_file</span>
-                        <span className="truncate font-semibold">{note.fileName}</span>
-                        {note.sizeMB ? <span className="text-slate-400 font-normal">({note.sizeMB} MB)</span> : null}
-                      </div>
-                    )}
-
-                    {/* Upload Date ("date kab dala he") */}
-                    <div className="mt-3 p-2.5 bg-blue-50/70 border border-blue-200/90 rounded-xl flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
-                        <span className="material-symbols-outlined text-[16px] text-blue-600">calendar_month</span>
-                        <span>Uploaded On:</span>
-                      </div>
-                      <span className="font-extrabold text-blue-950 font-mono">
-                        {formatNoteDate(note.createdAt)}
-                      </span>
+                      {/* Bookmark button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleBookmark(note.id);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer border ${
+                          isBookmarked
+                            ? 'bg-amber-50 text-amber-600 border-amber-300'
+                            : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 border-slate-200/80 bg-white'
+                        }`}
+                        title={isBookmarked ? "Remove from saved" : "Save bookmark"}
+                      >
+                        <span className="material-symbols-outlined text-[16px]">
+                          {isBookmarked ? 'bookmark' : 'bookmark_border'}
+                        </span>
+                      </button>
                     </div>
                   </div>
 
-                  {/* Edit & Delete Action Buttons */}
-                  <div className="mt-4 pt-3 border-t border-slate-200 flex flex-col gap-2">
+                  {/* School / Institution Name Badge */}
+                  <div className="flex items-center gap-1.5 text-xs text-blue-900 font-bold mb-2.5 bg-blue-50/70 px-2.5 py-1 rounded-lg border border-blue-100/90 w-fit max-w-full">
+                    <span className="material-symbols-outlined text-[15px] text-blue-700 shrink-0">school</span>
+                    <span className="truncate">{note.schoolName || 'General School Repository'}</span>
+                  </div>
+
+                  {/* Note Title */}
+                  <h3 className="text-base font-extrabold text-slate-900 leading-snug line-clamp-2 mb-2 font-serif group-hover:text-blue-600 transition-colors">
+                    {note.title}
+                  </h3>
+
+                  {/* File Name & Size */}
+                  {note.fileName && (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-2 font-mono truncate" title={note.fileName}>
+                      <span className="material-symbols-outlined text-[15px] text-slate-500 shrink-0">attach_file</span>
+                      <span className="truncate font-semibold">{note.fileName}</span>
+                      {note.sizeMB ? <span className="text-slate-400 font-normal">({note.sizeMB} MB)</span> : null}
+                    </div>
+                  )}
+
+                  {/* Upload Date & Contributor Row */}
+                  <div className="mt-3 p-2.5 bg-slate-50/90 border border-slate-200/90 rounded-xl flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-700 font-semibold truncate max-w-[50%]">
+                      <span className="material-symbols-outlined text-[15px] text-slate-500 shrink-0">person</span>
+                      <span className="truncate" title={note.author?.name || 'Contributor'}>
+                        {note.author?.name || 'Contributor'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 font-bold text-slate-800 font-mono text-[11px] shrink-0">
+                      <span className="material-symbols-outlined text-[14px] text-blue-600">calendar_month</span>
+                      <span>{formatNoteDate(note.createdAt)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-2">
+                  {/* If user owns note, show Edit & Delete directly */}
+                  {showOwnerActions && (
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
@@ -1146,147 +1228,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <span>Delete Note</span>
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewNote(note)}
-                        className="py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1 border border-slate-200 cursor-pointer transition-all"
-                      >
-                        <span className="material-symbols-outlined text-[15px] text-slate-500">visibility</span>
-                        <span>View Info</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(note)}
-                        className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1 cursor-pointer border-none transition-all"
-                      >
-                        <span className="material-symbols-outlined text-[15px]">download</span>
-                        <span>Download</span>
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              );
-            }
+                  )}
 
-            return (
-              <article key={note.id} className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-all flex flex-col justify-between group border border-outline-variant/20 relative">
-                <div>
-                  <div className="flex items-center justify-between mb-space-sm gap-2">
-                    <div className="flex items-center gap-space-xs flex-wrap">
-                      <span className="bg-primary-fixed text-primary font-label-sm text-label-sm font-semibold px-space-sm py-0.5 rounded-full">
-                        {getAcademicLevelLabel(note)}
-                      </span>
-                      <span className="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-medium px-space-sm py-0.5 rounded-full">
-                        {note.subject}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                      {/* My Note Badge */}
-                      {user && note.ownerId === user.uid && (
-                        <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-sans text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs" title="Created by your account">
-                          <span className="material-symbols-outlined text-[12px] text-emerald-700">person</span>
-                          <span>My Note</span>
-                        </span>
-                      )}
-
-                      {/* Unique ID Badge */}
-                      {note.schoolCode && (
-                        <span className="bg-blue-100 text-blue-900 border border-blue-200/90 font-mono text-[11px] font-black px-2 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs tracking-wider" title="Unique School & Note Identifier">
-                          <span className="material-symbols-outlined text-[12px] text-blue-700">tag</span>
-                          <span>{note.schoolCode}</span>
-                        </span>
-                      )}
-
-                      {/* Bookmark / Save Action Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleBookmark(note.id);
-                        }}
-                        className={`p-1.5 rounded-lg transition-colors cursor-pointer border ${
-                          bookmarks.includes(note.id)
-                            ? 'bg-amber-50 text-amber-600 border-amber-300'
-                            : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 border-slate-200/60 bg-white'
-                        }`}
-                        title={bookmarks.includes(note.id) ? "Remove from bookmarks" : "Save to bookmarks"}
-                      >
-                        <span className="material-symbols-outlined text-[16px]">
-                          {bookmarks.includes(note.id) ? 'bookmark' : 'bookmark_border'}
-                        </span>
-                      </button>
-
-                      {/* Quick Edit & Delete Action Buttons: ONLY visible inside "My Uploads" for student's own notes */}
-                      {canManageNote(note) && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartEdit(note);
-                            }}
-                            className="p-1.5 rounded-lg text-blue-700 hover:text-blue-900 hover:bg-blue-100 transition-colors cursor-pointer border border-blue-300 bg-blue-50"
-                            title="Edit Note Details or PDF"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">edit</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeletingNote(note);
-                            }}
-                            className="p-1.5 rounded-lg text-rose-700 hover:text-rose-900 hover:bg-rose-100 transition-colors cursor-pointer border border-rose-300 bg-rose-50"
-                            title="Delete My Note"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">delete</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* School Name Tag */}
-                  <div className="flex items-center gap-1.5 text-xs text-blue-900 font-semibold mb-2.5 bg-blue-50/90 px-2.5 py-1 rounded-lg border border-blue-100/90 w-fit max-w-full">
-                    <span className="material-symbols-outlined text-[15px] text-blue-700 shrink-0">school</span>
-                    <span className="truncate">{note.schoolName || 'School Archive'}</span>
-                  </div>
-                  
-                  <h2 className="font-title-md text-title-md text-on-surface font-semibold group-hover:text-primary transition-colors line-clamp-2 mb-space-xs">
-                    {note.title}
-                  </h2>
-                  
-                  <div className="flex items-center gap-space-sm py-space-xs mb-space-md">
-                    <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-label-sm text-label-sm font-bold">
-                      {note.author.initials}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-label-sm text-label-sm text-on-surface flex items-center gap-1">
-                        {note.author.name}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="pt-space-md mt-auto bg-slate-50/60 -mx-space-lg -mb-space-lg p-space-md rounded-b-2xl border-t border-slate-200/80">
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <button 
+                  {/* Primary Download & View Info Buttons */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
                       onClick={() => setPreviewNote(note)}
-                      className="bg-white hover:bg-blue-50/70 text-slate-800 hover:text-blue-700 font-bold text-xs sm:text-sm py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-300 shadow-2xs hover:border-blue-400 active:scale-95"
+                      className="py-2.5 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 shadow-2xs hover:border-blue-400 cursor-pointer transition-all active:scale-95"
                     >
-                      <span className="material-symbols-outlined text-[17px] text-blue-600">visibility</span>
+                      <span className="material-symbols-outlined text-[16px] text-blue-600">visibility</span>
                       <span>View Info</span>
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => handleDownload(note)}
-                      className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white font-extrabold text-xs sm:text-sm py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35 transition-all cursor-pointer group border-none active:scale-95"
-                      title="Download Note PDF / Document"
+                      className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/25 hover:shadow-lg transition-all cursor-pointer border-none active:scale-95"
+                      title="Download study note PDF"
                     >
-                      <span className="material-symbols-outlined text-[18px]">download</span>
-                      <span>Download</span>
+                      <span className="material-symbols-outlined text-[17px]">file_download</span>
+                      <span>Download PDF</span>
                     </button>
                   </div>
                 </div>
@@ -1299,44 +1260,47 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* VIEW INFO MODAL */}
       {previewNote && (
         <div 
-          className="fixed inset-0 z-50 bg-inverse-surface/60 backdrop-blur-sm flex items-center justify-center p-space-md"
+          className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
           onClick={() => setPreviewNote(null)}
         >
           <div 
-            className="bg-surface-container-lowest rounded-xl max-w-lg w-full p-space-lg shadow-2xl flex flex-col gap-space-md relative"
+            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 flex flex-col gap-4 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button 
               onClick={() => setPreviewNote(null)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-surface-container-low hover:bg-surface-container flex items-center justify-center text-on-surface transition-colors cursor-pointer border-none"
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors cursor-pointer border-none"
               title="Close"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
             
-            <div className="flex flex-col gap-1 pr-8">
-              <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+            <div className="flex flex-col gap-1 pr-10">
+              <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md w-fit border border-blue-200">
+                Note Details
+              </span>
+              <h3 className="font-serif text-xl sm:text-2xl text-slate-900 font-extrabold mt-1 leading-snug">
                 {previewNote.title}
               </h3>
             </div>
             
             {/* School & Unique Verification Badge Box */}
-            <div className="bg-surface-container-low/60 rounded-xl p-4 border border-outline-variant/30 flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-3 pb-3 border-b border-outline-variant/20">
+            <div className="bg-slate-50/90 rounded-2xl p-4 sm:p-5 border border-slate-200/90 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-[20px]">school</span>
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 shadow-2xs">
+                    <span className="material-symbols-outlined text-[22px]">school</span>
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] font-semibold text-outline uppercase tracking-wider">School / College</span>
-                    <span className="font-bold text-on-surface text-sm sm:text-base truncate">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Institution / School</span>
+                    <span className="font-extrabold text-slate-900 text-sm sm:text-base truncate">
                       {previewNote.schoolName || 'General School Repository'}
                     </span>
                   </div>
                 </div>
 
                 {previewNote.schoolCode && (
-                  <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200/90 px-2.5 py-1.5 rounded-lg shrink-0">
+                  <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-xl shrink-0">
                     <span className="font-mono font-black text-blue-900 text-xs sm:text-sm tracking-wider">
                       {previewNote.schoolCode}
                     </span>
@@ -1356,36 +1320,42 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="text-outline block mb-0.5 font-medium">Subject</span>
-                  <span className="font-semibold text-on-surface text-sm">{previewNote.subject}</span>
+                  <span className="text-slate-500 block mb-0.5 font-bold uppercase text-[10px]">Subject</span>
+                  <span className="font-extrabold text-slate-900 text-sm">{previewNote.subject}</span>
                 </div>
                 <div>
-                  <span className="text-outline block mb-0.5 font-medium">Academic Level</span>
-                  <span className="font-semibold text-on-surface text-sm">{getAcademicLevelLabel(previewNote)}</span>
+                  <span className="text-slate-500 block mb-0.5 font-bold uppercase text-[10px]">Academic Level</span>
+                  <span className="font-extrabold text-blue-700 text-sm">{getAcademicLevelLabel(previewNote)}</span>
                 </div>
                 <div>
-                  <span className="text-outline block mb-0.5 font-medium">Author / Contributor</span>
-                  <span className="font-semibold text-on-surface text-sm">{previewNote.author.name}</span>
+                  <span className="text-slate-500 block mb-0.5 font-bold uppercase text-[10px]">Author / Contributor</span>
+                  <span className="font-bold text-slate-800 text-xs sm:text-sm">{previewNote.author.name}</span>
                 </div>
                 <div>
-                  <span className="text-outline block mb-0.5 font-medium">Document File</span>
-                  <span className="font-semibold text-slate-800 text-xs truncate block" title={previewNote.fileName || 'note.pdf'}>
-                    {previewNote.fileName || 'Academic Note.pdf'} ({previewNote.sizeMB} MB)
-                  </span>
+                  <span className="text-slate-500 block mb-0.5 font-bold uppercase text-[10px]">Uploaded On</span>
+                  <span className="font-bold text-slate-800 font-mono text-xs sm:text-sm">{formatNoteDate(previewNote.createdAt)}</span>
                 </div>
               </div>
+
+              {previewNote.fileName && (
+                <div className="pt-2 border-t border-slate-200/80 flex items-center gap-2 text-xs text-slate-700">
+                  <span className="material-symbols-outlined text-[16px] text-blue-600">attach_file</span>
+                  <span className="font-mono font-bold truncate flex-1">{previewNote.fileName}</span>
+                  {previewNote.sizeMB ? <span className="text-slate-500 font-normal shrink-0">({previewNote.sizeMB} MB)</span> : null}
+                </div>
+              )}
             </div>
             
             {/* Action Buttons in Info Modal */}
-            <div className="flex items-center justify-between pt-space-md mt-space-sm border-t border-outline-variant/20 flex-wrap gap-2">
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 flex-wrap gap-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => toggleBookmark(previewNote.id)}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
                     bookmarks.includes(previewNote.id)
-                      ? 'bg-amber-100 text-amber-800 border-amber-300'
-                      : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200'
+                      ? 'bg-amber-50 text-amber-800 border-amber-300'
+                      : 'bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-700 border-slate-200'
                   }`}
                   title={bookmarks.includes(previewNote.id) ? "Remove Bookmark" : "Save Bookmark"}
                 >
@@ -1395,7 +1365,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <span>{bookmarks.includes(previewNote.id) ? 'Saved' : 'Save'}</span>
                 </button>
 
-                {/* Edit & Delete in View Info modal ONLY if viewing from My Uploads and is owner */}
+                {/* Edit & Delete in View Info modal ONLY if owner */}
                 {canManageNote(previewNote) && (
                   <>
                     <button
@@ -1405,11 +1375,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         setPreviewNote(null);
                         handleStartEdit(noteToEdit);
                       }}
-                      className="px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-blue-200"
+                      className="px-3.5 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-blue-200"
                       title="Edit Note Details or PDF"
                     >
                       <span className="material-symbols-outlined text-[16px]">edit</span>
-                      <span>Edit Note</span>
+                      <span>Edit</span>
                     </button>
 
                     <button
@@ -1419,7 +1389,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         setPreviewNote(null);
                         setDeletingNote(noteToDelete);
                       }}
-                      className="px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-rose-200"
+                      className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-rose-200"
                       title="Delete Note"
                     >
                       <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -1438,10 +1408,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </button>
                 <button 
                   onClick={() => handleDownload(previewNote)}
-                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white font-extrabold text-xs sm:text-sm rounded-xl flex items-center gap-2 shadow-md shadow-blue-500/25 hover:shadow-lg transition-all cursor-pointer border-none active:scale-95"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-xs sm:text-sm rounded-xl flex items-center gap-2 shadow-md shadow-blue-500/25 hover:shadow-lg transition-all cursor-pointer border-none active:scale-95"
                 >
-                  <span className="material-symbols-outlined text-[19px]">download</span>
-                  <span>Download File</span>
+                  <span className="material-symbols-outlined text-[19px]">file_download</span>
+                  <span>Download PDF</span>
                 </button>
               </div>
             </div>

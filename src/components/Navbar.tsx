@@ -52,33 +52,34 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="fixed top-0 left-0 right-0 w-full z-50 bg-white/95 backdrop-blur-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border-b border-slate-200/80">
       <div className="h-16 max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-3">
-        {/* Left Side: Back Button & Logo */}
+        {/* Left Side: Back Arrow Icon & School Archive Logo */}
         <div className="flex items-center gap-2 sm:gap-3">
           {activeTab !== 'landing' && (
             <button
               onClick={onBack}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 transition-all cursor-pointer border border-slate-300 text-xs font-bold shadow-2xs active:scale-95"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border-none bg-transparent"
               title="Go Back"
             >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-              <span className="hidden sm:inline">Back</span>
+              <span className="material-symbols-outlined text-[20px]">chevron_left</span>
             </button>
           )}
 
-          {/* Logo with Open Book Emblem */}
+          {/* Logo with Blue Graduation Hat Badge */}
           <a
-            className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer select-none"
+            className="flex items-center gap-2.5 group cursor-pointer select-none"
             onClick={(e) => { e.preventDefault(); onTabChange('landing'); }}
             title="Return to Home"
           >
-            <div className="w-10 h-7 sm:w-14 sm:h-9 flex items-center justify-center">
-              <NotesVaultLogo size="sm" showText={false} />
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+              <span className="material-symbols-outlined text-[20px]">school</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm sm:text-lg text-[#0b2545] tracking-tight leading-none group-hover:text-blue-700 transition-colors font-black">
-                NOTESVAULT
+              <span className="text-sm sm:text-base text-[#0b2545] tracking-tight leading-none group-hover:text-blue-600 transition-colors font-black">
+                NOTES<span className="text-blue-600">VAULT</span>
               </span>
-              <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium">School Notes Archive</span>
+              <span className="text-[9px] text-slate-500 font-semibold tracking-wider uppercase mt-0.5">
+                SCHOOL &amp; COLLEGE ARCHIVE
+              </span>
             </div>
           </a>
 
@@ -119,26 +120,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
         </div>
 
-        {/* Right Side: Quick Actions & Authentication */}
+        {/* Right Side: Post Button & Profile Avatar */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          {activeTab !== 'browse' && (
-            <button
-              onClick={() => onTabChange('browse')}
-              className="hidden xs:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/80 hover:bg-blue-100 text-blue-800 text-xs sm:text-sm font-bold transition-all cursor-pointer border border-blue-200/90 shadow-2xs"
-            >
-              <span className="material-symbols-outlined text-[17px]">search</span>
-              <span>Search</span>
-            </button>
-          )}
-
           {activeTab !== 'upload' && (
             <button
               onClick={() => onTabChange('upload')}
-              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-800 text-white text-xs sm:text-sm font-extrabold shadow-md shadow-blue-500/25 hover:shadow-lg transition-all cursor-pointer border-none active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-sm shadow-blue-500/25 transition-all cursor-pointer border-none active:scale-95"
             >
-              <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
-              <span className="hidden sm:inline">Upload</span>
-              <span className="sm:hidden">Post</span>
+              <span className="material-symbols-outlined text-[17px]">cloud_upload</span>
+              <span>Post</span>
             </button>
           )}
 
@@ -148,24 +138,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-1.5 p-1 pl-1.5 pr-2.5 rounded-full bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-blue-400 transition-all cursor-pointer shadow-2xs"
+                className="flex items-center gap-1 p-0.5 pr-1 rounded-full hover:bg-slate-100 transition-all cursor-pointer border-none bg-transparent"
                 title="Student Profile"
               >
-                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#0b2545] to-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+                <div className="w-8 h-8 rounded-full bg-[#0d1b2a] text-white flex items-center justify-center text-xs font-black shadow-xs">
                   {displayInitial}
                 </div>
-                <div className="flex flex-col text-left">
-                  <span className="text-xs font-bold text-slate-800 hidden sm:inline max-w-[110px] truncate leading-tight">
-                    {displayName}
-                  </span>
-                  {studentGrade && (
-                    <span className="text-[9px] font-semibold text-blue-700 hidden sm:inline leading-none">
-                      {studentGrade}
-                    </span>
-                  )}
-                </div>
-                <span className="material-symbols-outlined text-[16px] text-slate-500">
-                  {menuOpen ? 'expand_less' : 'expand_more'}
+                <span className="material-symbols-outlined text-[18px] text-slate-600">
+                  {menuOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
                 </span>
               </button>
 
